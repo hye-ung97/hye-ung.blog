@@ -3,7 +3,7 @@ const siteMetadata = {
   title: 'hye-yeong blog',
   author: 'Hyeyeong Sung',
   headerTitle: 'Hyeyeong Blog',
-  description: 'A blog created with Next.js and Tailwind.css',
+  description: '문제를 해결하며 얻은 경험과 배움을 정리하는 공간입니다.',
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
