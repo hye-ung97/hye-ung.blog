@@ -1,0 +1,77 @@
+---
+title: 'BOLA 1편: 숫자 하나 바꿨더니 남의 주문이 보였다'
+date: '2026-09-27'
+tags: ['security', 'bola', 'owasp', 'api']
+draft: false
+summary: '주문 번호 하나만 바꿨는데 남의 개인정보가 보인다면? OWASP API 보안 위험 1위인 BOLA를 직접 재현해 보며 원인과 막는 원칙을 정리합니다.'
+---
+
+## 들어가며
+
+쇼핑몰에서 내 주문 상세를 열고 브라우저 개발자 도구를 보면 `GET /api/orders/10231` 같은 요청이 보입니다. 이 숫자를 10232로 바꿔서 다시 요청했더니 모르는 사람의 이름, 전화번호, 배송지가 그대로 돌아온다면 어떨까요? 그 서비스에는 BOLA 취약점이 있는 것입니다.
+
+특별한 해킹 기술은 필요 없습니다. 로그인한 상태에서 숫자 하나만 바꾸면 되고, 이걸 스크립트로 반복하면 수만 건의 개인정보가 금방 빠져나갑니다.
+
+이번 글에서는 BOLA가 무엇인지 직접 재현해 보면서 5분 만에 감을 잡아 봅니다. Spring과 Next.js에서 막는 방법은 2편과 3편에서 다룹니다.
+
+## BOLA, 한 줄로 말하면
+
+BOLA(Broken Object Level Authorization)는 "로그인은 확인하는데, 그 데이터가 네 것인지는 확인하지 않는" 취약점입니다. IDOR라는 이름으로도 불리고, OWASP가 뽑은 API 보안 위험 Top 10에서 2019년과 2023년 연속 1위를 차지했습니다. ([OWASP API1:2023](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/))
+
+## 로그인했다고 다 되는 건 아니다
+
+서버는 요청을 받으면 두 가지를 확인해야 합니다. 인증은 "누구인가"를, 인가는 "이 사람이 이 데이터에 접근해도 되는가"를 묻습니다. BOLA는 인증만 하고 인가를 건너뛸 때 생깁니다.
+
+![API 요청 처리 흐름: 요청이 들어오면 인증(누구인가)을 거친 뒤 인가(이 주문이 요청한 사람의 것인가)를 확인하고 응답한다. BOLA는 인가 단계를 건너뛸 때 생긴다.](/static/images/bola/auth-flow.svg)
+
+인증은 필터나 미들웨어에 한 번 설정하면 끝나지만, "이 주문은 누구 것인가" 같은 인가는 API마다 직접 챙겨야 합니다. 게다가 내 계정으로 내 데이터를 조회하는 평범한 테스트는 취약한 코드에서도 잘 통과하기 때문에, 빠뜨려도 티가 나지 않습니다.
+
+## 직접 해보기
+
+말로 듣는 것보다 한 번 보는 게 빠릅니다. 아래는 Express로 만든 주문 조회 API인데, 로그인 확인(`auth`)은 있지만 주문의 주인이 누구인지는 확인하지 않습니다.
+
+```js
+app.get('/api/orders/:id', auth, (req, res) => {
+  const order = orders.find((o) => o.id === Number(req.params.id));
+  if (!order) return res.status(404).json({ error: 'Not found' });
+  res.json(order);
+});
+```
+
+alice로 로그인한 상태에서 주문 번호만 bob의 것(10232)으로 바꿔 요청해 봅니다.
+
+```bash
+curl -H "Authorization: Bearer token-alice" http://localhost:3000/api/orders/10232
+# {"id":10232,"userId":2,"item":"모니터 암","address":"부산시 해운대구 (예시)","phone":"010-0000-2222"}
+```
+
+bob의 주소와 전화번호가 그대로 나옵니다. 고치는 방법은 간단합니다. 조회 조건에 "요청한 사람이 주인인가"를 한 줄 추가하면 됩니다.
+
+```js
+const order = orders.find(
+  (o) => o.id === Number(req.params.id) && o.userId === req.user.id
+);
+```
+
+같은 요청을 다시 보내면 이제 `404 Not Found`가 돌아옵니다. 여기서 중요한 건 사용자 ID를 요청에서 받지 않고, 로그인 과정에서 확인한 `req.user`에서 꺼낸다는 점입니다.
+
+> 이 실습은 로컬에 띄운 본인 서버에서만 해 주세요. 다른 서비스에서 허락 없이 ID를 바꿔 요청하면 불법이 될 수 있습니다.
+
+## 실제로 일어난 일
+
+2018년 미국 우정청(USPS) 웹사이트에서 바로 이런 일이 있었습니다. usps.com에 로그인만 하면 누구나 약 6천만 명에 달하는 다른 사용자의 이메일, 주소, 전화번호 같은 계정 정보를 조회할 수 있었고, 일부는 수정 요청까지 가능했습니다. 사실상 유일한 접근 통제가 "로그인했는가"였던 셈입니다. ([KrebsOnSecurity](https://krebsonsecurity.com/2018/11/usps-site-exposed-data-on-60-million-users/))
+
+## 마치며: 이것만 기억하세요
+
+- 로그인 확인(인증)과 "네 데이터가 맞는지" 확인(인가)은 다른 일입니다.
+- 사용자 ID는 요청이 아니라 서버의 세션이나 토큰에서 가져옵니다.
+- 조회뿐 아니라 수정·삭제 API에도 똑같이 확인합니다.
+
+참고로 ID를 UUID로 바꾸면 추측은 어려워지지만, ID는 URL 공유나 로그로 얼마든지 새어 나갈 수 있어서 근본적인 해결책은 아닙니다.
+
+다음 2편에서는 Spring에서, 3편에서는 Next.js에서 BOLA를 막는 방법을 실제 코드로 살펴보겠습니다.
+
+### 더 알아보기
+
+- [OWASP API1:2023 Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
+- [USPS Site Exposed Data on 60 Million Users (KrebsOnSecurity)](https://krebsonsecurity.com/2018/11/usps-site-exposed-data-on-60-million-users/)
