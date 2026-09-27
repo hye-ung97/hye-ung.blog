@@ -1,7 +1,7 @@
 /** @type {import("pliny/config").PlinyConfig } */
 const siteMetadata = {
   title: 'hye-yeong blog',
-  author: 'Tails Azimuth',
+  author: 'Hyeyeong Sung',
   headerTitle: 'Hyeyeong Blog',
   description: 'A blog created with Next.js and Tailwind.css',
   language: 'en-us',
@@ -10,9 +10,9 @@ const siteMetadata = {
   siteRepo: 'https://github.com/timlrx/tailwind-nextjs-starter-blog',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
-  email: 'address@yoursite.com',
+  email: 'hysung714@naver.com',
   github: 'https://github.com/hye-ung97',
-  linkedin: 'https://www.linkedin.com',
+  linkedin: 'https://www.linkedin.com/in/hyeyeong97/',
   locale: 'en-US',
   // set to true if you want a navbar fixed to the top
   stickyNav: false,
