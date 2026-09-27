@@ -13,7 +13,6 @@ import ScrollTopAndComment from '@/components/ScrollTopAndComment'
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 
 const postDateTemplate: Intl.DateTimeFormatOptions = {
-  weekday: 'long',
   year: 'numeric',
   month: 'long',
   day: 'numeric',
