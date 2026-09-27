@@ -4,5 +4,9 @@
   "owasp": 1,
   "api": 3,
   "spring": 1,
-  "nextjs": 1
+  "nextjs": 1,
+  "payment": 1,
+  "consistency": 1,
+  "saga": 1,
+  "transaction": 1
 }
