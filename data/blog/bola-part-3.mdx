@@ -1,0 +1,131 @@
+---
+title: 'BOLA 3편: Next.js에서 남의 주문 막기'
+date: '2026-09-27T22:00:00+09:00'
+tags: ['security', 'bola', 'nextjs', 'api']
+draft: false
+summary: '삭제 버튼은 내 주문 목록에만 있는데 남의 주문이 지워진다면? Next.js App Router에서 데이터 접근을 DAL 한 곳에 모으는 방법과 가장 놓치기 쉬운 Server Action, 그리고 middleware(proxy)만 믿으면 안 되는 이유까지 정리합니다.'
+---
+
+## 들어가며
+
+[1편](/blog/bola-part-1)에서는 BOLA가 무엇인지 직접 재현해 봤고, [2편](/blog/bola-part-2)에서는 Spring에서 막는 방법을 살펴봤습니다. 마지막 3편에서는 Next.js App Router에서 같은 문제를 어떻게 막는지 알아봅니다.
+
+예제는 Next.js 16 기준이고, 15에서도 거의 그대로 쓸 수 있습니다. Next.js 16에서 middleware가 proxy로 이름이 바뀐 것만 기억해 두세요. ([Next.js 16 발표](https://nextjs.org/blog/next-16))
+
+## Next.js에는 입구가 여러 개다
+
+Spring에서는 보통 컨트롤러가 입구지만, Next.js App Router에서는 서버 코드가 실행되는 입구가 세 개입니다. API를 만드는 Route Handler, 폼이나 버튼에서 호출하는 Server Action, 그리고 데이터를 직접 조회해 화면을 그리는 Server Component입니다.
+
+이 입구마다 따로 검증을 넣다 보면 한 곳쯤은 빠지기 마련입니다. 그래서 Next.js 공식 문서는 새 프로젝트라면 데이터 접근을 한 곳에 모으는 DAL(Data Access Layer)을 만들라고 권합니다. ([Next.js Data Security](https://nextjs.org/docs/app/guides/data-security))
+
+![입구가 셋이어도 데이터로 가는 길은 DAL 하나다. Route Handler(app/api/.../route.ts), Server Action('use server' 함수), Server Component(page.tsx에서 직접 조회) 세 입구가 모두 DAL(lib/dal.ts)을 거쳐 DB에 닿는다. DAL은 세션에서 사용자를 확인하고 쿼리에 주인 조건을 건다.](/static/images/bola/nextjs-dal.png)
+
+어느 입구로 들어오든 DB에 닿기 전에 반드시 DAL을 거치게 만들면, 검증은 한 곳에만 제대로 짜도 됩니다.
+
+## 한 곳에서 막기: DAL 만들기
+
+DAL은 거창한 게 아니라, 데이터를 읽고 쓰는 함수를 모아 둔 서버 전용 파일입니다. 핵심은 모든 함수가 로그인한 사용자를 직접 확인하고, 그 사용자의 데이터만 다루도록 조건을 건다는 점입니다.
+
+```ts
+// lib/dal.ts
+import 'server-only';
+import { cache } from 'react';
+import { getSession } from './session';
+import { db } from './db';
+
+// 한 요청 안에서는 세션을 한 번만 조회한다
+export const getCurrentUserId = cache(async () => {
+  const session = await getSession();
+  if (!session) throw new Error('UNAUTHORIZED');
+  return session.userId;
+});
+
+export async function getMyOrder(orderId: number) {
+  const userId = await getCurrentUserId();
+  return db.order.findFirst({ where: { id: orderId, userId } });
+}
+
+export async function deleteMyOrder(orderId: number) {
+  const userId = await getCurrentUserId();
+  const { count } = await db.order.deleteMany({ where: { id: orderId, userId } });
+  if (count === 0) throw new Error('NOT_FOUND');
+}
+```
+
+몇 가지만 짚고 넘어갈게요.
+
+- **`import 'server-only'`**: 이 파일이 실수로 클라이언트 코드에 섞이면 빌드 에러가 납니다.
+- **`getSession()`**: 사용하는 인증 라이브러리의 세션 조회 함수입니다. Auth.js라면 `auth()`가 이 역할을 합니다.
+- **`db`**: Prisma 클라이언트라고 생각하면 됩니다. `findFirst`와 `deleteMany`는 Prisma API와 같은 모양입니다.
+- **`deleteMany` + `userId` 조건**: 남의 주문이면 아무것도 지워지지 않고 `count`가 0이 됩니다.
+
+## Route Handler에서 쓰기
+
+Route Handler는 DAL 함수를 부르기만 하면 됩니다. 주인 확인은 이미 DAL 안에 있으니, 여기서는 결과가 없을 때 404를 돌려주는 것만 챙기면 됩니다.
+
+```ts
+// app/api/orders/[id]/route.ts
+import { getMyOrder } from '@/lib/dal';
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const order = await getMyOrder(Number(id));
+  if (!order) return Response.json({ error: 'Not found' }, { status: 404 });
+  return Response.json(order);
+}
+```
+
+Next.js 16.3에서 실제로 돌려 본 결과입니다. alice는 자기 주문만 보고, bob의 주문은 404로 막힙니다.
+
+```bash
+curl -b "token=token-alice" http://localhost:3000/api/orders/10231
+# {"id":10231,"userId":1,"item":"무선 키보드", ...}
+
+curl -i -b "token=token-alice" http://localhost:3000/api/orders/10232
+# HTTP/1.1 404 Not Found
+```
+
+하나 더, 세션이 없을 때 DAL이 던지는 `UNAUTHORIZED` 에러는 그대로 두면 500이 됩니다. 공통 에러 처리에서 401로 바꿔 주세요.
+
+## Server Action: 가장 놓치기 쉬운 곳
+
+Server Action은 코드로 보면 평범한 함수지만, 실제로는 누구나 POST 요청으로 직접 호출할 수 있는 엔드포인트입니다. Next.js 문서도 페이지에서 로그인을 확인했다고 그 안의 Server Action까지 보호되지는 않는다고 분명히 적고 있습니다. "삭제 버튼은 내 주문 목록에만 보이니까 괜찮다"는 생각이 가장 위험합니다.
+
+```ts
+'use server';
+
+// 취약: 로그인만 확인하고, 받은 orderId를 그대로 지운다
+export async function deleteOrderVulnerable(orderId: number) {
+  if (!(await getSession())) throw new Error('UNAUTHORIZED');
+  await db.order.deleteMany({ where: { id: orderId } });
+  revalidatePath('/');
+}
+
+// 고친 버전: DAL을 거쳐 내 주문만 지운다
+export async function deleteOrder(orderId: number) {
+  await deleteMyOrder(orderId);
+  revalidatePath('/');
+}
+```
+
+브라우저 없이 curl로 두 액션을 직접 호출해 봤습니다. alice의 쿠키로 bob의 주문(10232)을 지우라고 요청하자, 취약한 버전은 정말로 bob의 주문을 지웠고 DAL을 거친 버전은 `NOT_FOUND` 에러를 내며 아무것도 지우지 않았습니다. 버튼이 어디에 보이는지는 상관이 없었던 겁니다.
+
+같은 이유로 액션 인자나 폼의 hidden input으로 `userId`를 받아서도 안 됩니다. 사용자는 항상 서버에서 세션으로 확인합니다.
+
+## middleware(proxy)만 믿으면 안 되는 이유
+
+proxy는 로그인하지 않은 사용자를 로그인 페이지로 돌려보내는 1차 필터로는 쓸 만합니다. 하지만 요청 경로만 볼 뿐 "이 주문이 누구 것인지"는 모르기 때문에, 객체 단위 인가를 맡길 곳은 아닙니다. matcher 설정에서 경로 하나만 빠져도 그 API는 검사 없이 열립니다.
+
+프레임워크 자체의 버그도 있습니다. 2025년 3월 공개된 CVE-2025-29927은 내부용 헤더 하나만 붙이면 middleware 실행 자체를 건너뛸 수 있던 취약점입니다. 셀프 호스팅한 Next.js에서 middleware에만 인증을 둔 앱은 이 헤더 하나로 검사가 우회될 수 있었습니다. ([GitHub 보안 권고](https://github.com/vercel/next.js/security/advisories/GHSA-f82v-jwr5-mffw))
+
+15.2.3, 14.2.25 등에서 패치됐지만 교훈은 분명합니다. proxy나 layout에서 하는 검사는 화면을 위한 것이고, 진짜 검사는 데이터 바로 앞인 DAL에 한 번 더 있어야 합니다.
+
+## 마치며: 이것만 기억하세요
+
+- 데이터 접근은 DAL 한 곳에 모으고, 모든 함수가 세션으로 사용자를 직접 확인하게 합니다.
+- Server Action은 누구나 호출할 수 있는 엔드포인트입니다. 버튼이 어디에 있는지는 보안이 아닙니다.
+- proxy(middleware)는 1차 필터일 뿐, 주인 확인은 DAL에서 합니다.
+
+이것으로 BOLA 시리즈를 마칩니다. 프레임워크는 달라도 원칙은 1편에서 본 그대로입니다. 사용자는 서버에서 확인하고, 주인 조건은 데이터에 닿기 직전에 겁니다.
+
+계정 두 개로 서로의 데이터를 요청해 보는 테스트 하나가 가장 확실한 안전장치라는 것도 잊지 마세요.
