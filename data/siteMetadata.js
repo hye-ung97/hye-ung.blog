@@ -6,8 +6,8 @@ const siteMetadata = {
   description: '문제를 해결하며 얻은 경험과 배움을 정리하는 공간입니다.',
   language: 'en-us',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://tailwind-nextjs-starter-blog.vercel.app',
-  siteRepo: 'https://github.com/timlrx/tailwind-nextjs-starter-blog',
+  siteUrl: 'https://hye-ung-blog.vercel.app',
+  siteRepo: 'https://github.com/hye-ung97/hye-ung.blog',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
   email: 'hysung714@naver.com',
