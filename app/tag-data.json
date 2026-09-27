@@ -1,6 +1,7 @@
 {
-  "security": 1,
-  "bola": 1,
+  "security": 2,
+  "bola": 2,
   "owasp": 1,
-  "api": 1
+  "api": 2,
+  "spring": 1
 }

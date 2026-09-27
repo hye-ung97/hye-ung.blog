@@ -1,0 +1,146 @@
+---
+title: 'BOLA 2편: Spring에서 남의 주문 막기'
+date: '2026-09-27T21:00:00+09:00'
+tags: ['security', 'bola', 'spring', 'api']
+draft: false
+summary: '모든 API에 로그인을 걸었는데도 남의 주문이 보인다면? Spring에서 쿼리에 주인 조건을 넣는 방법과 @PreAuthorize로 검증을 모으는 방법, 그리고 BOLA가 다시 생기지 않도록 테스트로 지키는 방법까지 정리합니다.'
+---
+
+## 들어가며
+
+[1편](/blog/bola-part-1)에서는 주문 번호 하나만 바꿔도 남의 주문이 보이는 BOLA를 직접 재현해 봤습니다. 원인은 로그인(인증)만 확인하고 "이 주문이 네 것인지"(인가)는 확인하지 않은 데 있었죠.
+
+이번 글에서는 같은 문제를 Spring에서 어떻게 막는지 살펴봅니다. 예제는 Spring Boot, Spring Security, Spring Data JPA 기준이고, Spring Boot 3.x와 4.x 모두에서 쓸 수 있는 방식입니다. 코드의 import 문은 생략했습니다.
+
+## 취약한 코드부터 보기
+
+Spring 프로젝트에서 가장 흔히 보는 형태입니다. 보안 설정에서 모든 API에 로그인을 요구하니 안전해 보이지만, 컨트롤러는 ID로 주문을 찾아 그대로 돌려줍니다.
+
+```java
+// SecurityConfig: 모든 요청에 로그인 요구 → 인증은 된다
+http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
+
+// OrderController: 주문의 주인이 누구인지는 확인하지 않는다
+@GetMapping("/api/orders/{id}")
+public OrderResponse getOrder(@PathVariable Long id) {
+    Order order = orderRepository.findById(id)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    return OrderResponse.from(order);
+}
+```
+
+1편의 Express 예제와 똑같은 구조입니다. alice로 로그인해서 `/api/orders/10232`를 요청하면 bob의 주문이 그대로 나옵니다.
+
+## 방법 1: 쿼리에 주인 조건 넣기
+
+가장 기본이면서 가장 확실한 방법입니다. 주문을 찾을 때부터 "이 사용자의 주문 중에서" 찾도록 리포지토리 메서드를 바꿉니다.
+
+```java
+public interface OrderRepository extends JpaRepository<Order, Long> {
+    // Order의 user.id(또는 userId)가 이 값과 같은 주문만 찾는다
+    Optional<Order> findByIdAndUserId(Long id, Long userId);
+}
+```
+
+서비스에서는 이 메서드를 쓰고, 결과가 없으면 404를 돌려줍니다. 남의 주문이든 없는 주문이든 똑같이 "없음"으로 처리하는 겁니다.
+
+```java
+@Transactional(readOnly = true)
+public OrderResponse getMyOrder(Long orderId, Long userId) {
+    Order order = orderRepository.findByIdAndUserId(orderId, userId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    return OrderResponse.from(order);
+}
+```
+
+컨트롤러에서는 `@AuthenticationPrincipal`로 로그인한 사용자를 꺼내 넘깁니다. 사용자 ID를 요청 파라미터가 아니라 Spring Security가 확인한 인증 정보에서 가져오는 게 핵심입니다.
+
+```java
+@GetMapping("/api/orders/{id}")
+public OrderResponse getOrder(@PathVariable Long id,
+                              @AuthenticationPrincipal CustomUserDetails user) {
+    return orderService.getMyOrder(id, user.getId());
+}
+```
+
+여기서 `CustomUserDetails`는 `UserDetails`를 구현하고 사용자 ID를 담고 있는 클래스라고 가정했습니다. JWT 기반 리소스 서버라면 `@AuthenticationPrincipal Jwt jwt`로 받아서 토큰에 담긴 사용자 식별자를 쓰면 됩니다.
+
+## 방법 2: @PreAuthorize로 검증 모으기
+
+API가 많아지면 서비스 메서드마다 조건을 넣다가 한두 곳을 빠뜨리기 쉽습니다. 이럴 땐 "이 주문의 주인인가"를 판단하는 빈을 하나 만들고, 애너테이션으로 거는 방법이 편합니다.
+
+```java
+@Component("orderAuthz")
+@RequiredArgsConstructor
+public class OrderAuthorization {
+    private final OrderRepository orderRepository;
+
+    public boolean isOwner(Long orderId, Authentication authentication) {
+        CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
+        // 리포지토리에 existsByIdAndUserId(Long id, Long userId)를 추가해 둡니다
+        return orderRepository.existsByIdAndUserId(orderId, user.getId());
+    }
+}
+```
+
+```java
+@PreAuthorize("@orderAuthz.isOwner(#id, authentication)")
+@DeleteMapping("/api/orders/{id}")
+public void deleteOrder(@PathVariable Long id) {
+    orderService.delete(id);
+}
+```
+
+이 방법을 쓸 땐 세 가지를 챙겨 주세요. 먼저 설정 클래스에 `@EnableMethodSecurity`를 붙여야 합니다. Spring Boot의 보안 스타터는 메서드 보안을 기본으로 켜지 않기 때문입니다. ([Spring Security 문서](https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html))
+
+또 `#id`처럼 파라미터 이름으로 참조하려면 `-parameters` 컴파일 옵션이 필요한데, Gradle은 Spring Boot 플러그인을, Maven은 `spring-boot-starter-parent`를 쓰면 기본으로 켜져 있습니다. 마지막으로 검사에 실패하면 403이 나가는데, 1편처럼 남의 주문을 404로 숨기고 싶다면 예외 처리에서 맞춰 주세요.
+
+| 방법                  | 검증 위치            | 쿼리 수             | 실패 시 기본 응답 | 잘 맞는 경우                     |
+| --------------------- | -------------------- | ------------------- | ----------------- | -------------------------------- |
+| 방법 1: 쿼리 조건     | 리포지토리·서비스    | 1번                 | 404               | 대부분의 API                     |
+| 방법 2: @PreAuthorize | 메서드 위 애너테이션 | 검사 1번 + 조회 1번 | 403               | 같은 규칙을 여러 API가 공유할 때 |
+
+처음에는 방법 1로 시작하고, 같은 검사가 여러 곳에서 반복되기 시작하면 방법 2로 모으는 걸 추천합니다.
+
+## 자주 놓치는 곳
+
+조회 API를 고쳐 놓고 안심하기 쉽지만, BOLA는 주로 아래 네 곳에서 다시 생깁니다.
+
+- **수정·삭제 API**: `orderRepository.deleteById(id)`처럼 ID만으로 지우는 코드는 조회와 똑같이 위험합니다. 삭제 전에 방법 1이나 2로 주인을 확인하세요.
+- **목록 API**: 전체를 가져온 뒤 걸러내지 말고, 처음부터 `findAllByUserId(userId, pageable)`처럼 조건을 걸어 조회합니다.
+- **경로에 들어간 userId**: `/api/users/{userId}/orders`에서 경로의 `userId`를 그대로 쓰면 숫자만 바꿔 남의 목록을 볼 수 있습니다. `/api/me/orders`로 바꾸거나 로그인한 사용자와 같은지 비교하세요.
+- **요청 바디의 userId**: 수정 요청 DTO에 `userId` 필드가 있다면 무시하고, 항상 인증 정보의 값을 씁니다.
+
+## 테스트로 지키기
+
+BOLA는 정상 흐름 테스트로는 잡히지 않습니다. 그래서 "bob이 alice의 주문을 요청하면 막히는가"를 테스트로 남겨 두는 게 가장 확실한 예방책입니다. `spring-security-test` 의존성을 추가하면 원하는 사용자로 요청을 보낼 수 있습니다.
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class OrderAuthorizationTest {
+
+    @Autowired MockMvc mockMvc;
+
+    // aliceOrderId, bobDetails는 @BeforeEach에서 준비한다고 가정
+
+    @Test
+    void 다른_사용자의_주문은_조회할_수_없다() throws Exception {
+        mockMvc.perform(get("/api/orders/{id}", aliceOrderId)
+                .with(user(bobDetails)))
+            .andExpect(status().isNotFound());
+    }
+}
+```
+
+`user(...)`는 `SecurityMockMvcRequestPostProcessors`의 메서드로, 우리가 만든 `CustomUserDetails`를 그대로 넘길 수 있습니다. 방법 2로 막은 API라면 기대값은 `status().isForbidden()`이 됩니다.
+
+조회뿐 아니라 수정·삭제 API에도 이런 테스트를 하나씩 두세요. 나중에 누가 코드를 바꿔도 BOLA가 다시 생기면 CI에서 바로 잡힙니다.
+
+## 마치며: 이것만 기억하세요
+
+- 사용자 ID는 `@AuthenticationPrincipal`, 즉 Spring Security가 확인한 인증 정보에서만 가져옵니다.
+- 기본은 `findByIdAndUserId`처럼 쿼리에 주인 조건을 넣는 것이고, 같은 검사가 반복되면 `@PreAuthorize`로 모읍니다.
+- 수정·삭제·목록 API까지, 계정 두 개로 교차 테스트를 남겨 둡니다.
+
+다음 3편에서는 Next.js에서 같은 문제를 막는 방법을 다룹니다. Server Action처럼 Next.js에서 특히 놓치기 쉬운 부분도 함께 살펴보겠습니다.
