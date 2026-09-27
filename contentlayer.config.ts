@@ -1,5 +1,5 @@
 import { defineDocumentType, ComputedFields, makeSource } from 'contentlayer2/source-files'
-import { writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import readingTime from 'reading-time'
 import { slug } from 'github-slugger'
 import path from 'path'
@@ -179,9 +179,12 @@ export default makeSource({
       rehypePresetMinify,
     ],
   },
-  onSuccess: async (importData) => {
-    const { allBlogs } = await importData()
-    createTagCount(allBlogs)
+  onSuccess: async () => {
+    // Read the generated JSON instead of importData(): it goes through import(), which Node
+    // caches for the life of the dev server, so posts added after startup were missed.
+    const indexPath = path.join(root, '.contentlayer', 'generated', 'Blog', '_index.json')
+    const allBlogs = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, 'utf8')) : []
+    await createTagCount(allBlogs)
     createSearchIndex(allBlogs)
   },
 })
