@@ -8,5 +8,9 @@
   "payment": 1,
   "consistency": 1,
   "saga": 1,
-  "transaction": 1
+  "transaction": 1,
+  "tdd": 1,
+  "testing": 1,
+  "ai": 1,
+  "refactoring": 1
 }
