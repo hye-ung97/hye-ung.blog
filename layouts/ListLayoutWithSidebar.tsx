@@ -113,9 +113,9 @@ export default function ListLayoutWithSidebar({
 
   return (
     <>
-      <div>
-        <div className="pt-6 pb-6">
-          <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 xl:hidden dark:text-gray-100">
+      <div className="flex flex-col pt-6 xl:grid xl:grid-cols-[280px_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:gap-x-24">
+        <div className="pb-6 xl:col-start-2 xl:row-start-1">
+          <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 dark:text-gray-100">
             {title}
           </h1>
           <button
@@ -149,79 +149,82 @@ export default function ListLayoutWithSidebar({
             </svg>
           </button>
         </div>
-        <div className="flex flex-col xl:flex-row xl:space-x-24">
-          <div
-            id="list-sidebar"
-            className={`${menuOpen ? 'flex' : 'hidden'} mb-4 h-full max-h-screen flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md xl:mb-0 xl:flex xl:max-w-[280px] xl:min-w-[280px] dark:bg-gray-900/70 dark:shadow-gray-800/40`}
-          >
-            <div className="px-6 py-4">
-              {currentPath === '/blog' ? (
-                <h3 className="text-primary-500 font-bold uppercase">All Posts</h3>
-              ) : (
-                <Link
-                  href={`/blog`}
-                  onClick={() => setMenuOpen(false)}
-                  className="hover:text-primary-500 dark:hover:text-primary-500 font-bold text-gray-700 uppercase dark:text-gray-300"
-                >
-                  All Posts
-                </Link>
-              )}
-              <ul>
-                {sidebarItems.map(({ href, label, count, ariaLabel }) => {
-                  return (
-                    <li key={href} className="my-3">
-                      {currentPath === href ? (
-                        <h3 className="text-primary-500 inline px-3 py-2 text-sm font-bold uppercase">
-                          {`${label} (${count})`}
-                        </h3>
-                      ) : (
-                        <Link
-                          href={href}
-                          onClick={() => setMenuOpen(false)}
-                          className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
-                          aria-label={ariaLabel}
-                        >
-                          {`${label} (${count})`}
-                        </Link>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          </div>
-          <div>
+        <div
+          id="list-sidebar"
+          className={`${menuOpen ? 'flex' : 'hidden'} mb-4 max-h-screen flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md xl:col-start-1 xl:row-span-2 xl:row-start-1 xl:mb-0 xl:flex xl:self-start dark:bg-gray-900/70 dark:shadow-gray-800/40`}
+        >
+          <div className="px-6 py-4">
+            {currentPath === '/blog' ? (
+              <span aria-current="page" className="text-primary-500 font-bold uppercase">
+                All Posts
+              </span>
+            ) : (
+              <Link
+                href={`/blog`}
+                onClick={() => setMenuOpen(false)}
+                className="hover:text-primary-500 dark:hover:text-primary-500 font-bold text-gray-700 uppercase dark:text-gray-300"
+              >
+                All Posts
+              </Link>
+            )}
             <ul>
-              {displayPosts.map((post) => {
-                const { path, date, title, summary, tags } = post
+              {sidebarItems.map(({ href, label, count, ariaLabel }) => {
                 return (
-                  <li key={path} className="py-5">
-                    <article className="space-y-3">
-                      <div>
-                        <h2 className="text-2xl leading-8 font-bold tracking-tight">
-                          <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100">
-                            {title}
-                          </Link>
-                        </h2>
-                        <div className="flex flex-wrap">
-                          {tags?.map((tag) => (
-                            <Tag key={tag} text={tag} />
-                          ))}
-                        </div>
-                        <PostDate date={date} className="mt-2" />
-                      </div>
-                      <div className="prose max-w-none text-gray-500 dark:text-gray-400">
-                        {summary}
-                      </div>
-                    </article>
+                  <li key={href} className="my-3">
+                    {currentPath === href ? (
+                      <span
+                        aria-current="page"
+                        className="text-primary-500 px-3 py-2 text-sm font-bold uppercase"
+                      >
+                        {`${label} (${count})`}
+                      </span>
+                    ) : (
+                      <Link
+                        href={href}
+                        onClick={() => setMenuOpen(false)}
+                        className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
+                        aria-label={ariaLabel}
+                      >
+                        {`${label} (${count})`}
+                      </Link>
+                    )}
                   </li>
                 )
               })}
             </ul>
-            {pagination && pagination.totalPages > 1 && (
-              <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
-            )}
           </div>
+        </div>
+        <div className="xl:col-start-2 xl:row-start-2">
+          <ul>
+            {displayPosts.map((post) => {
+              const { path, date, title, summary, tags } = post
+              return (
+                <li key={path} className="py-5">
+                  <article className="space-y-3">
+                    <div>
+                      <h2 className="text-2xl leading-8 font-bold tracking-tight">
+                        <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100">
+                          {title}
+                        </Link>
+                      </h2>
+                      <div className="flex flex-wrap">
+                        {tags?.map((tag) => (
+                          <Tag key={tag} text={tag} />
+                        ))}
+                      </div>
+                      <PostDate date={date} className="mt-2" />
+                    </div>
+                    <div className="prose max-w-none text-gray-500 dark:text-gray-400">
+                      {summary}
+                    </div>
+                  </article>
+                </li>
+              )
+            })}
+          </ul>
+          {pagination && pagination.totalPages > 1 && (
+            <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
+          )}
         </div>
       </div>
     </>
