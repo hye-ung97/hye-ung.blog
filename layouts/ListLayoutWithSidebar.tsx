@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { slug } from 'github-slugger'
 import { CoreContent } from 'pliny/utils/contentlayer'
@@ -7,6 +8,7 @@ import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import PostDate from '@/components/PostDate'
 import Tag from '@/components/Tag'
+import categoryData from 'app/category-data.json'
 import tagData from 'app/tag-data.json'
 
 interface PaginationProps {
@@ -18,12 +20,40 @@ interface ListLayoutProps {
   title: string
   initialDisplayPosts?: CoreContent<Blog>[]
   pagination?: PaginationProps
+  sidebar: 'categories' | 'tags'
+}
+interface SidebarItem {
+  href: string
+  label: string
+  count: number
+  ariaLabel: string
+}
+
+function getSidebarItems(sidebar: ListLayoutProps['sidebar']): SidebarItem[] {
+  if (sidebar === 'tags') {
+    const tagCounts = tagData as Record<string, number>
+    return Object.keys(tagCounts)
+      .sort((a, b) => tagCounts[b] - tagCounts[a])
+      .map((t) => ({
+        href: `/tags/${slug(t)}`,
+        label: t,
+        count: tagCounts[t],
+        ariaLabel: `View posts tagged ${t}`,
+      }))
+  }
+  const categories = categoryData as Record<string, { name: string; count: number }>
+  return Object.keys(categories)
+    .sort((a, b) => categories[b].count - categories[a].count)
+    .map((c) => ({
+      href: `/blog/category/${c}`,
+      label: categories[c].name,
+      count: categories[c].count,
+      ariaLabel: `View posts in ${categories[c].name}`,
+    }))
 }
 
 function Pagination({ totalPages, currentPage }: PaginationProps) {
   const pathname = usePathname()
-  const segments = pathname.split('/')
-  const lastSegment = segments[segments.length - 1]
   const basePath = pathname
     .replace(/^\//, '') // Remove leading slash
     .replace(/\/page\/\d+\/?$/, '') // Remove any trailing /page
@@ -65,16 +95,19 @@ function Pagination({ totalPages, currentPage }: PaginationProps) {
   )
 }
 
-export default function ListLayoutWithTags({
+export default function ListLayoutWithSidebar({
   posts,
   title,
   initialDisplayPosts = [],
   pagination,
+  sidebar,
 }: ListLayoutProps) {
   const pathname = usePathname()
-  const tagCounts = tagData as Record<string, number>
-  const tagKeys = Object.keys(tagCounts)
-  const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
+  const [menuOpen, setMenuOpen] = useState(false)
+  const currentPath = decodeURI(pathname)
+    .replace(/\/page\/\d+\/?$/, '') // Remove any trailing /page
+    .replace(/\/$/, '') // Remove trailing slash
+  const sidebarItems = getSidebarItems(sidebar)
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
 
@@ -82,38 +115,73 @@ export default function ListLayoutWithTags({
     <>
       <div>
         <div className="pt-6 pb-6">
-          <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:hidden sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 dark:text-gray-100">
+          <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14 xl:hidden dark:text-gray-100">
             {title}
           </h1>
+          <button
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="list-sidebar"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 xl:hidden dark:bg-gray-700 dark:hover:bg-gray-600"
+          >
+            {sidebar === 'tags' ? 'Tags' : 'Categories'}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+              className="h-4 w-4"
+            >
+              {menuOpen ? (
+                <path
+                  fillRule="evenodd"
+                  d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                  clipRule="evenodd"
+                />
+              ) : (
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              )}
+            </svg>
+          </button>
         </div>
-        <div className="flex sm:space-x-24">
-          <div className="hidden h-full max-h-screen max-w-[280px] min-w-[280px] flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md sm:flex dark:bg-gray-900/70 dark:shadow-gray-800/40">
+        <div className="flex flex-col xl:flex-row xl:space-x-24">
+          <div
+            id="list-sidebar"
+            className={`${menuOpen ? 'flex' : 'hidden'} mb-4 h-full max-h-screen flex-wrap overflow-auto rounded-sm bg-gray-50 pt-5 shadow-md xl:mb-0 xl:flex xl:max-w-[280px] xl:min-w-[280px] dark:bg-gray-900/70 dark:shadow-gray-800/40`}
+          >
             <div className="px-6 py-4">
-              {pathname.startsWith('/blog') ? (
+              {currentPath === '/blog' ? (
                 <h3 className="text-primary-500 font-bold uppercase">All Posts</h3>
               ) : (
                 <Link
                   href={`/blog`}
+                  onClick={() => setMenuOpen(false)}
                   className="hover:text-primary-500 dark:hover:text-primary-500 font-bold text-gray-700 uppercase dark:text-gray-300"
                 >
                   All Posts
                 </Link>
               )}
               <ul>
-                {sortedTags.map((t) => {
+                {sidebarItems.map(({ href, label, count, ariaLabel }) => {
                   return (
-                    <li key={t} className="my-3">
-                      {decodeURI(pathname.split('/tags/')[1]) === slug(t) ? (
+                    <li key={href} className="my-3">
+                      {currentPath === href ? (
                         <h3 className="text-primary-500 inline px-3 py-2 text-sm font-bold uppercase">
-                          {`${t} (${tagCounts[t]})`}
+                          {`${label} (${count})`}
                         </h3>
                       ) : (
                         <Link
-                          href={`/tags/${slug(t)}`}
+                          href={href}
+                          onClick={() => setMenuOpen(false)}
                           className="hover:text-primary-500 dark:hover:text-primary-500 px-3 py-2 text-sm font-medium text-gray-500 uppercase dark:text-gray-300"
-                          aria-label={`View posts tagged ${t}`}
+                          aria-label={ariaLabel}
                         >
-                          {`${t} (${tagCounts[t]})`}
+                          {`${label} (${count})`}
                         </Link>
                       )}
                     </li>

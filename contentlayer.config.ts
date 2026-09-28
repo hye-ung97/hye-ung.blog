@@ -80,6 +80,27 @@ async function createTagCount(allBlogs) {
   writeFileSync('./app/tag-data.json', formatted)
 }
 
+/**
+ * Count the posts in each category and write to json file, keyed by slug with the display name
+ */
+async function createCategoryCount(allBlogs) {
+  const categoryCount: Record<string, { name: string; count: number }> = {}
+  allBlogs.forEach((file) => {
+    if (file.category && (!isProduction || file.draft !== true)) {
+      const formattedCategory = slug(file.category)
+      if (formattedCategory in categoryCount) {
+        categoryCount[formattedCategory].count += 1
+      } else {
+        categoryCount[formattedCategory] = { name: file.category, count: 1 }
+      }
+    }
+  })
+  const formatted = await prettier.format(JSON.stringify(categoryCount, null, 2), {
+    parser: 'json',
+  })
+  writeFileSync('./app/category-data.json', formatted)
+}
+
 function createSearchIndex(allBlogs) {
   if (
     siteMetadata?.search?.provider === 'kbar' &&
@@ -101,6 +122,7 @@ export const Blog = defineDocumentType(() => ({
     title: { type: 'string', required: true },
     date: { type: 'date', required: true },
     tags: { type: 'list', of: { type: 'string' }, default: [] },
+    category: { type: 'string' },
     lastmod: { type: 'date' },
     draft: { type: 'boolean' },
     summary: { type: 'string' },
@@ -185,6 +207,7 @@ export default makeSource({
     const indexPath = path.join(root, '.contentlayer', 'generated', 'Blog', '_index.json')
     const allBlogs = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, 'utf8')) : []
     await createTagCount(allBlogs)
+    await createCategoryCount(allBlogs)
     createSearchIndex(allBlogs)
   },
 })
