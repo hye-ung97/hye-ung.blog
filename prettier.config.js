@@ -7,4 +7,11 @@ module.exports = {
   trailingComma: 'es5',
   bracketSpacing: true,
   plugins: ['prettier-plugin-tailwindcss'],
+  overrides: [
+    {
+      // Keep code samples in posts as written instead of applying this repo's style to them
+      files: ['*.md', '*.mdx'],
+      options: { embeddedLanguageFormatting: 'off' },
+    },
+  ],
 }
