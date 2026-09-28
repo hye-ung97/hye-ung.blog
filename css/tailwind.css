@@ -159,6 +159,11 @@ input:-webkit-autofill:focus {
   overflow: auto hidden;
 }
 
+/* A heading reached from the table of contents stops level with the sticky list (top-8) */
+.content-header {
+  scroll-margin-top: 2rem;
+}
+
 .content-header-link {
   opacity: 0;
   margin-left: -24px;
