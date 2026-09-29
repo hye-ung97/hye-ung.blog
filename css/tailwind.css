@@ -47,6 +47,23 @@
   --z-60: 60;
   --z-70: 70;
   --z-80: 80;
+
+  /* A zoomed post image fades in over the page and grows slightly into place. The names are
+     specific because pliny's search styles already define a fade-in keyframe. */
+  --animate-zoom-overlay: zoom-overlay 150ms ease-out;
+  --animate-zoom-image: zoom-image 150ms ease-out;
+
+  @keyframes zoom-overlay {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes zoom-image {
+    from {
+      transform: scale(0.96);
+    }
+  }
 }
 
 /*
@@ -162,6 +179,12 @@ input:-webkit-autofill:focus {
 /* A heading reached from the table of contents stops level with the sticky list (top-8) */
 .content-header {
   scroll-margin-top: 2rem;
+}
+
+/* The page stays put behind a zoomed post image. The body's pl-[calc(100vw-100%)] keeps the
+   content from shifting when the scrollbar goes away. */
+html:has(dialog:modal) {
+  overflow: hidden;
 }
 
 .content-header-link {
