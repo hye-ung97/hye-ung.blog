@@ -2,10 +2,10 @@
   "security": 3,
   "bola": 3,
   "owasp": 1,
-  "api": 4,
+  "api": 5,
   "spring": 1,
   "nextjs": 1,
-  "http": 1,
+  "http": 2,
   "idempotency": 1,
   "rest": 1,
   "payment": 1,
@@ -15,5 +15,7 @@
   "tdd": 1,
   "testing": 1,
   "ai": 1,
-  "refactoring": 1
+  "refactoring": 1,
+  "lock": 1,
+  "concurrency": 1
 }
