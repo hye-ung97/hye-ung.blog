@@ -8,7 +8,7 @@ import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-const POSTS_PER_PAGE = 5
+const POSTS_PER_PAGE = 10
 
 const categories = categoryData as Record<string, { name: string; count: number }>
 
