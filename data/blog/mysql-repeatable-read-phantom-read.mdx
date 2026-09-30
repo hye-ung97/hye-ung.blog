@@ -1,0 +1,321 @@
+---
+title: 'REPEATABLE READ인데 왜 Phantom Read가 안 생길까?'
+date: '2026-09-30'
+tags: ['mysql', 'innodb', 'mvcc', 'transaction']
+category: 'Backend'
+draft: false
+summary: 'REPEATABLE READ에서는 Phantom Read가 발생할 수 있다고 배웠는데 MySQL에서는 아무리 실험해도 재현되지 않는다면? InnoDB의 스냅샷 읽기와 Next-Key Lock이 팬텀을 막는 방식, 그리고 읽기 방식을 섞었을 때 나타나는 예외까지 살펴봐요.'
+---
+
+## 들어가며: 교과서와 다른 결과
+
+“REPEATABLE READ에서는 Phantom Read가 발생할 수 있다.” 트랜잭션 격리 수준을 공부하면 한 번쯤 외우게 되는 문장이에요. 그런데 MySQL에서 직접 실험해 보면 팬텀은 좀처럼 나타나지 않아요.
+
+이 글에서는 그 이유를 두 가지 장치, **MVCC 스냅샷**과 **Next-Key Lock**으로 풀어봐요. 그리고 두 종류의 읽기를 한 트랜잭션에서 섞었을 때 왜 서로 다른 테이블 상태가 보이는지도 살펴볼게요.
+
+실험 환경은 MySQL 8.0, InnoDB 엔진, 기본 격리 수준인 `REPEATABLE READ`예요.
+
+## Phantom Read, 다시 짚고 가기
+
+Phantom Read는 한 트랜잭션이 같은 검색 조건을 다시 실행했을 때, 다른 트랜잭션의 커밋 때문에 조건을 만족하는 **행의 집합이 달라지는 현상**이에요. INSERT와 DELETE뿐 아니라, 기존 행의 조건 컬럼이 UPDATE되어 검색 범위 안팎으로 이동하는 경우도 포함해요.
+
+이미 읽은 한 행의 값이 달라지는 Non-Repeatable Read와 달리, Phantom Read에서는 조건을 만족하는 행이 유령처럼 나타나거나 사라져요.
+
+| 격리 수준        | Dirty Read | Non-Repeatable Read | Phantom Read         |
+| ---------------- | ---------- | ------------------- | -------------------- |
+| READ UNCOMMITTED | 가능       | 가능                | 가능                 |
+| READ COMMITTED   | 방지       | 가능                | 가능                 |
+| REPEATABLE READ  | 방지       | 방지                | 허용(표준 최소 기준) |
+| SERIALIZABLE     | 방지       | 방지                | 방지                 |
+
+여기서 눈여겨볼 곳은 `REPEATABLE READ` 줄이에요. 이 표는 SQL 표준이 각 격리 수준에 요구하는 최소 보장이에요. 구현체가 표준보다 더 강하게 막는 것은 문제가 아니고, MySQL InnoDB와 PostgreSQL이 바로 그런 경우예요.
+
+## 먼저 실험 환경 만들기
+
+`age`에 보조 인덱스가 있는 테이블을 만들고 다섯 행을 넣어요. 이후 예제는 이 초기 상태에서 각각 독립적으로 시작해요.
+
+```sql
+DROP TABLE IF EXISTS member;
+
+CREATE TABLE member (
+  id   INT PRIMARY KEY,
+  name VARCHAR(20),
+  age  INT,
+  INDEX idx_age (age)
+) ENGINE = InnoDB;
+
+INSERT INTO member VALUES
+  (1, 'kim', 20),
+  (2, 'lee', 25),
+  (5, 'park', 30),
+  (8, 'jung', 10),
+  (9, 'kang', 40);
+```
+
+실험을 다시 시작할 때는 아래 쿼리로 추가한 행과 수정한 이름을 원래대로 돌릴 수 있어요.
+
+```sql
+DELETE FROM member WHERE id IN (6, 10, 11);
+
+UPDATE member
+SET name = CASE id
+  WHEN 1 THEN 'kim'
+  WHEN 2 THEN 'lee'
+  WHEN 5 THEN 'park'
+  WHEN 8 THEN 'jung'
+  WHEN 9 THEN 'kang'
+  ELSE name
+END
+WHERE id IN (1, 2, 5, 8, 9);
+```
+
+## 일반 SELECT에서는 팬텀이 보이지 않는다
+
+터미널 두 개에서 세션 A와 B를 열고 다음 순서로 실행해 볼게요.
+
+```sql
+-- 세션 A
+BEGIN;
+
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30;
+-- 3건: id 1, 2, 5
+```
+
+```sql
+-- 세션 B
+BEGIN;
+
+INSERT INTO member VALUES (6, 'choi', 27);
+
+COMMIT;
+```
+
+```sql
+-- 세션 A
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30;
+-- 여전히 3건
+
+COMMIT;
+```
+
+B의 INSERT는 아무런 대기 없이 커밋됐어요. `id=6`은 분명 테이블에 존재하지만, A의 두 번째 조회에는 나타나지 않아요.
+
+![B가 커밋한 새 행은 A의 두 번째 조회에 보이지 않는다. 세션 A가 age 20부터 30까지 조회해 id 1, 2, 5를 얻은 뒤 세션 B가 id 6과 age 27인 행을 넣고 커밋한다. 세션 A가 같은 SELECT를 다시 실행해도 결과는 여전히 세 건이며 id 6은 보이지 않는다.](/static/images/repeatable-read-phantom-read/session-snapshot.png)
+
+그 이유는 일반 SELECT가 테이블의 최신 상태를 직접 읽는 것이 아니라, 트랜잭션에 고정된 스냅샷을 읽기 때문이에요.
+
+## 이유 1: 일반 SELECT는 Read View를 읽는다
+
+InnoDB는 행을 수정할 때 이전 값을 바로 버리지 않고 undo 로그에 남겨요. 각 레코드에는 버전을 판단하는 데 쓰이는 시스템 컬럼도 있어요.
+
+- `DB_TRX_ID`: 이 레코드 버전을 마지막으로 만든 트랜잭션의 ID
+- `DB_ROLL_PTR`: undo 로그의 이전 버전을 가리키는 포인터
+
+`REPEATABLE READ`에서 첫 번째 일반 SELECT, 즉 consistent nonlocking read가 실행되면 Read View가 만들어져요. 이후 같은 트랜잭션의 일반 SELECT는 트랜잭션이 끝날 때까지 그 Read View를 재사용해요.
+
+스냅샷은 `BEGIN`만 실행했다고 바로 생기는 것이 아니에요. 시작 시점에 스냅샷을 고정하고 싶다면 `START TRANSACTION WITH CONSISTENT SNAPSHOT`을 사용할 수 있어요.
+
+![Read View보다 늦게 쓰인 버전은 건너뛰고 undo의 과거 버전을 읽는다. 세션 A의 Read View에는 활성 트랜잭션 목록과 가장 오래된 활성 ID, 다음 트랜잭션 ID가 기록된다. 가장 오래된 활성 ID보다 작은 버전은 보이고, 다음 ID 이상이거나 활성 목록에 포함된 버전은 보이지 않는다. 두 경계 사이이면서 활성 트랜잭션이 아닌 버전은 보인다. 보이지 않는 최신 버전은 DB_ROLL_PTR을 따라 undo의 이전 버전을 확인한다.](/static/images/repeatable-read-phantom-read/mvcc-read-view-v2.png)
+
+그림의 트랜잭션 ID는 동작을 설명하기 위한 예시 값이에요. 핵심은 Read View가 다음 세 부류를 구분한다는 점이에요.
+
+1. 스냅샷보다 먼저 끝난 트랜잭션의 버전은 보여요.
+2. 스냅샷 시점에 아직 진행 중이었거나 그 뒤 시작된 트랜잭션의 버전은 보이지 않아요.
+3. 최신 버전이 보이지 않으면 `DB_ROLL_PTR`을 따라가며 보이는 과거 버전을 찾아요.
+
+B가 삽입한 `id=6`은 A의 Read View가 만들어진 뒤 커밋됐고, 삽입된 새 행이라 돌아갈 이전 버전도 없어요. 그래서 A의 일반 SELECT 결과에서 통째로 빠져요.
+
+반면 `READ COMMITTED`는 일반 SELECT마다 새로운 스냅샷을 만들어요. 같은 실험을 `READ COMMITTED`에서 실행하면 A의 두 번째 SELECT에는 `id=6`이 보여요.
+
+## 이유 2: 잠금 읽기는 Next-Key Lock으로 막는다
+
+지금까지 본 일반 SELECT는 MVCC를 사용하는 consistent read예요. 하지만 다음 문장들은 스냅샷에만 머무르지 않고 잠금이 필요한 최신 상태를 읽어요.
+
+- `SELECT ... FOR UPDATE`
+- `SELECT ... FOR SHARE`
+- `UPDATE`
+- `DELETE`
+
+MySQL에서는 이런 동작을 흔히 **Current Read**라고 불러요. 다른 트랜잭션이 변경 중인 행이 있다면 기다린 뒤 사용할 수 있는 최신 버전을 읽고, 읽은 인덱스 레코드에 잠금을 설정해요.
+
+범위 검색에서 레코드만 잠그면 그 사이에 새 행이 들어올 수 있어요. InnoDB는 이를 막기 위해 Record Lock과 Gap Lock을 합친 Next-Key Lock을 사용해요.
+
+| 락 종류       | 잠그는 대상                              |
+| ------------- | ---------------------------------------- |
+| Record Lock   | 인덱스 레코드 자체                       |
+| Gap Lock      | 인덱스 레코드 사이의 빈 구간             |
+| Next-Key Lock | 인덱스 레코드와 그 레코드 앞쪽의 빈 구간 |
+
+이번에는 먼저 데이터를 초기화하고, 세션 A에서 잠금 읽기를 실행해요.
+
+```sql
+-- 실험 전, 어느 세션에서든 실행
+DELETE FROM member WHERE id IN (6, 10, 11);
+```
+
+```sql
+-- 세션 A
+BEGIN;
+
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30
+FOR UPDATE;
+```
+
+INSERT 세 개는 **서로 다른 세션 B1, B2, B3**에서 실행해야 해요. B2가 대기 상태에 들어가면 같은 세션에서는 다음 문장을 실행할 수 없기 때문이에요.
+
+```sql
+-- 세션 B1: 바로 성공
+INSERT INTO member VALUES (11, 'han', 5);
+```
+
+```sql
+-- 세션 B2: 세션 A가 COMMIT 또는 ROLLBACK할 때까지 대기
+INSERT INTO member VALUES (6, 'choi', 27);
+```
+
+```sql
+-- 세션 B3: 바로 성공
+INSERT INTO member VALUES (10, 'yoon', 45);
+```
+
+![범위를 잠그면 인덱스 레코드 사이의 틈까지 막힌다. 세션 A가 idx_age 인덱스로 age 20부터 30까지 FOR UPDATE 조회한다. 별도 세션 B1의 age 5 INSERT와 B3의 age 45 INSERT는 바로 성공한다. 범위 안에 age 27을 넣는 세션 B2는 세션 A가 끝날 때까지 대기한다. 실제 잠금 범위는 실행 계획과 인덱스 스캔에 따라 결정된다.](/static/images/repeatable-read-phantom-read/next-key-lock-range-v3.png)
+
+이 예제의 인덱스에는 `10, 20, 25, 30, 40`이 들어 있어요. Next-Key Lock은 레코드와 그 앞쪽 gap을 하나의 단위로 잠그기 때문에, 논리적인 조건인 20부터 30보다 실제 잠금 범위가 넓어질 수 있어요. 실행 계획에 따라 검색 끝을 확인하기 위해 만난 다음 레코드인 40 쪽 gap도 잠금에 포함될 수 있어요.
+
+따라서 “WHERE 조건 밖이면 무조건 INSERT할 수 있다”라고 생각하면 안 돼요. 실제 범위는 사용된 인덱스, 검색 조건이 유니크한지, 옵티마이저의 실행 계획에 따라 달라져요. 반대로 유니크 인덱스로 단 하나의 행을 정확히 찾는 조건이라면 gap 없이 Record Lock만 잡을 수 있어요.
+
+현재 락은 다음 쿼리로 직접 확인할 수 있어요.
+
+```sql
+SELECT *
+FROM performance_schema.data_locks;
+```
+
+`READ COMMITTED`에서는 검색과 인덱스 스캔의 Gap Lock이 대부분 비활성화돼요. 외래 키와 중복 키 검사 등 일부 예외를 제외하면, 잠금 읽기 사이에도 다른 트랜잭션이 gap에 행을 삽입할 수 있어요.
+
+## 두 읽기 방식을 섞으면 어떤 일이 생길까?
+
+일반 SELECT와 잠금 읽기는 서로 다른 상태를 봐요. 일반 SELECT는 Read View에 고정된 과거 스냅샷을 보고, 잠금 읽기와 DML은 잠금이 필요한 최신 상태를 봐요.
+
+MySQL 공식 문서도 `REPEATABLE READ` 트랜잭션 안에서 비잠금 SELECT와 잠금 문장을 섞는 것을 권장하지 않아요. 한 트랜잭션이 서로 다른 두 테이블 상태를 보게 되어 결과를 해석하기 어려워지기 때문이에요.
+
+데이터를 다시 초기화한 뒤 다음 순서로 실행해 볼게요.
+
+```sql
+-- 실험 전
+DELETE FROM member WHERE id IN (6, 10, 11);
+```
+
+```sql
+-- 세션 A
+BEGIN;
+
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30;
+-- 스냅샷 읽기: 3건
+```
+
+```sql
+-- 세션 B
+BEGIN;
+
+INSERT INTO member VALUES (6, 'choi', 27);
+
+COMMIT;
+```
+
+```sql
+-- 세션 A
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30
+FOR UPDATE;
+-- 잠금 읽기: 4건, id 6이 보임
+
+UPDATE member
+SET name = CONCAT(name, '!')
+WHERE age BETWEEN 20 AND 30;
+-- Rows matched: 4
+
+SELECT *
+FROM member
+WHERE age BETWEEN 20 AND 30;
+-- 일반 SELECT인데도 4건
+
+COMMIT;
+```
+
+![스냅샷 읽기와 잠금 읽기를 섞으면 서로 다른 테이블 상태를 본다. 세션 A의 첫 SELECT는 스냅샷에서 세 건을 읽는다. 세션 B가 id 6을 넣고 커밋한 뒤 세션 A가 FOR UPDATE로 읽으면 최신 상태의 네 건이 보여 팬텀처럼 보이는 변화가 생긴다. 세션 A가 네 행을 UPDATE하면 id 6도 자신의 변경이 되고, 마지막 일반 SELECT에서도 네 건이 보인다.](/static/images/repeatable-read-phantom-read/mixed-read-anomaly-v2.png)
+
+첫 SELECT는 락을 잡지 않으므로 B의 INSERT는 막히지 않아요. 이어지는 `FOR UPDATE`는 A의 과거 스냅샷이 아니라 잠금이 필요한 최신 상태를 확인하므로 `id=6`까지 네 건을 읽어요.
+
+다만 이것을 전형적인 Phantom Read와 완전히 같다고 부르기는 어려워요. 첫 문장은 consistent read이고 두 번째 문장은 locking read라서 동일한 읽기 연산을 반복한 것이 아니기 때문이에요. **스냅샷 읽기와 현재 읽기를 섞어서 나타난 팬텀 유사 변화**라고 표현하는 편이 더 정확해요.
+
+그다음 UPDATE가 `id=6`을 수정하면 상황이 한 번 더 바뀌어요. 자신이 쓴 변경은 기존 Read View와 관계없이 볼 수 있기 때문에, 마지막 일반 SELECT에도 `id=6`이 나타나요. 이때 A는 과거 스냅샷의 행들과 자신이 새로 수정한 행을 함께 보게 돼요.
+
+## PostgreSQL의 REPEATABLE READ는 어떨까?
+
+PostgreSQL의 `REPEATABLE READ`도 트랜잭션 단위 스냅샷을 사용해요. 정확히는 트랜잭션의 첫 번째 비트랜잭션 제어문이 시작된 시점의 스냅샷을 유지해요. 그래서 일반 조회에서 Phantom Read가 나타나지 않는다는 점은 InnoDB와 같아요.
+
+차이는 쓰기와 잠금 충돌을 다루는 방식에 있어요.
+
+| 항목              | MySQL InnoDB (RR)                       | PostgreSQL (RR)                            |
+| ----------------- | --------------------------------------- | ------------------------------------------ |
+| 일반 SELECT       | 첫 consistent read의 스냅샷             | 첫 비트랜잭션 제어문의 스냅샷              |
+| 잠금 읽기·DML     | 잠금이 필요한 최신 상태를 사용          | 스냅샷에서 찾은 대상 행을 기준으로 처리    |
+| 동시 수정 충돌    | 기다린 뒤 사용할 수 있는 최신 값에 반영 | 대상 행이 바뀌었다면 serialization 오류    |
+| Gap Lock          | 있음                                    | 없음                                       |
+| 애플리케이션 책임 | 읽기 방식을 섞을 때 상태 차이를 고려    | serialization 오류 시 전체 트랜잭션 재시도 |
+
+PostgreSQL의 `REPEATABLE READ` 트랜잭션이 스냅샷에서 찾은 행을 수정하거나 잠그려는데, 다른 트랜잭션이 그 행을 먼저 바꾸고 커밋했다면 다음 오류로 현재 트랜잭션이 실패할 수 있어요.
+
+```text
+ERROR: could not serialize access due to concurrent update
+```
+
+애플리케이션은 이 오류를 받으면 현재 트랜잭션 전체를 중단하고 처음부터 재시도해야 해요.
+
+두 데이터베이스 모두 `REPEATABLE READ`에서 모든 직렬화 이상을 막는 것은 아니에요. 서로 다른 행을 읽고 각자 다른 행을 수정해 비즈니스 불변식을 깨뜨리는 Write Skew 같은 문제까지 막아야 한다면 `SERIALIZABLE`이나 명시적인 잠금 전략을 검토해야 해요.
+
+## 실무에서는 어떻게 해야 할까?
+
+### 중복 확인은 UNIQUE 제약 조건으로 끝내기
+
+“같은 값이 없으면 INSERT” 같은 로직에서 `SELECT ... FOR UPDATE`만 믿으면 안 돼요. 잠금 범위는 인덱스와 실행 계획에 의존하고, 애플리케이션 버그나 다른 쓰기 경로가 잠금을 우회할 수도 있어요.
+
+중복을 절대 허용하면 안 되는 값에는 `UNIQUE` 제약 조건을 두고, 충돌 결과를 애플리케이션에서 처리하는 것이 가장 확실해요. 필요하다면 적절한 인덱스의 잠금 읽기를 함께 사용해 경합을 줄일 수 있어요.
+
+### 단순 재고 차감은 조건부 UPDATE로 처리하기
+
+재고를 읽고 애플리케이션에서 계산한 뒤 다시 쓰는 대신, 한 문장으로 조건을 검사하고 차감할 수 있어요.
+
+```sql
+UPDATE product
+SET stock = stock - 1
+WHERE id = ?
+  AND stock > 0;
+```
+
+영향받은 행이 1건이면 성공, 0건이면 품절로 처리해요. 읽기와 쓰기 사이의 틈이 줄어들고 잠금 전략도 단순해져요.
+
+### 읽은 범위를 근거로 복잡한 쓰기를 한다면 처음부터 잠그기
+
+여러 행을 읽어 판단한 뒤 같은 범위를 수정해야 한다면 첫 조회부터 `FOR UPDATE`를 사용하고, 검색 조건에 맞는 인덱스가 실제로 사용되는지 실행 계획을 확인해야 해요. 스냅샷 SELECT로 판단한 뒤 나중에 잠금 읽기로 전환하면 앞에서 본 것처럼 두 상태가 섞일 수 있어요.
+
+## 마치며
+
+MySQL InnoDB의 `REPEATABLE READ`에서 Phantom Read가 잘 보이지 않는 이유는 읽기 방식에 따라 두 장치가 작동하기 때문이에요.
+
+1. 일반 SELECT는 첫 consistent read에서 만든 Read View를 재사용해, 나중에 커밋된 행을 보여주지 않아요.
+2. 범위 잠금 읽기는 Next-Key Lock으로 인덱스 레코드 사이의 gap에 새 행이 들어오는 것을 막아요.
+
+그렇다고 `REPEATABLE READ`가 모든 동시성 문제를 자동으로 해결해 주는 것은 아니에요. 스냅샷 읽기와 잠금 읽기를 섞으면 한 트랜잭션 안에서도 서로 다른 테이블 상태를 볼 수 있고, Write Skew 같은 직렬화 이상도 남아 있어요.
+
+격리 수준 표는 출발점일 뿐이에요. 실제 동작은 사용하는 데이터베이스와 스토리지 엔진의 공식 문서를 확인하고, 제약 조건·원자적 쿼리·적절한 인덱스·잠금 전략을 함께 설계해야 해요.

@@ -8,14 +8,17 @@
   "http": 2,
   "idempotency": 1,
   "rest": 1,
+  "lock": 1,
+  "concurrency": 1,
+  "mysql": 1,
+  "innodb": 1,
+  "mvcc": 1,
+  "transaction": 2,
   "payment": 1,
   "consistency": 1,
   "saga": 1,
-  "transaction": 1,
   "tdd": 1,
   "testing": 1,
   "ai": 1,
-  "refactoring": 1,
-  "lock": 1,
-  "concurrency": 1
+  "refactoring": 1
 }
