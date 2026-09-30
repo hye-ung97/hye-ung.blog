@@ -199,7 +199,7 @@ FROM performance_schema.data_locks;
 
 ## 두 읽기 방식을 섞으면 어떤 일이 생길까?
 
-일반 SELECT와 잠금 읽기는 서로 다른 상태를 봐요. 일반 SELECT는 Read View에 고정된 과거 스냅샷을 보고, 잠금 읽기와 DML은 잠금이 필요한 최신 상태를 봐요.
+일반 SELECT와 잠금 읽기는 같은 트랜잭션 안에서도 서로 다른 상태를 볼 수 있어요. 일반 SELECT는 Read View에 고정된 과거 스냅샷을 보고, 잠금 읽기와 DML은 잠금이 필요한 최신 상태를 봐요.
 
 MySQL 공식 문서도 `REPEATABLE READ` 트랜잭션 안에서 비잠금 SELECT와 잠금 문장을 섞는 것을 권장하지 않아요. 한 트랜잭션이 서로 다른 두 테이블 상태를 보게 되어 결과를 해석하기 어려워지기 때문이에요.
 
@@ -239,8 +239,8 @@ FOR UPDATE;
 
 UPDATE member
 SET name = CONCAT(name, '!')
-WHERE age BETWEEN 20 AND 30;
--- Rows matched: 4
+WHERE id = 6;
+-- Rows matched: 1
 
 SELECT *
 FROM member
@@ -250,13 +250,13 @@ WHERE age BETWEEN 20 AND 30;
 COMMIT;
 ```
 
-![스냅샷 읽기와 잠금 읽기를 섞으면 서로 다른 테이블 상태를 본다. 세션 A의 첫 SELECT는 스냅샷에서 세 건을 읽는다. 세션 B가 id 6을 넣고 커밋한 뒤 세션 A가 FOR UPDATE로 읽으면 최신 상태의 네 건이 보여 팬텀처럼 보이는 변화가 생긴다. 세션 A가 네 행을 UPDATE하면 id 6도 자신의 변경이 되고, 마지막 일반 SELECT에서도 네 건이 보인다.](/static/images/repeatable-read-phantom-read/mixed-read-anomaly-v2.png)
+![세션 A의 같은 트랜잭션에서 읽기 방식에 따라 서로 다른 상태가 보인다. 첫 일반 SELECT는 스냅샷에서 세 건을 읽는다. 세션 B가 id 6을 삽입하고 커밋한 뒤 세션 A의 FOR UPDATE는 최신 상태의 네 건을 읽는다. 세션 A가 id 6을 직접 수정하면 마지막 일반 SELECT는 기존 스냅샷의 세 건과 자신의 변경 한 건을 합쳐 네 건을 반환한다.](/static/images/repeatable-read-phantom-read/mixed-read-anomaly-v3.png)
 
 첫 SELECT는 락을 잡지 않으므로 B의 INSERT는 막히지 않아요. 이어지는 `FOR UPDATE`는 A의 과거 스냅샷이 아니라 잠금이 필요한 최신 상태를 확인하므로 `id=6`까지 네 건을 읽어요.
 
 다만 이것을 전형적인 Phantom Read와 완전히 같다고 부르기는 어려워요. 첫 문장은 consistent read이고 두 번째 문장은 locking read라서 동일한 읽기 연산을 반복한 것이 아니기 때문이에요. **스냅샷 읽기와 현재 읽기를 섞어서 나타난 팬텀 유사 변화**라고 표현하는 편이 더 정확해요.
 
-그다음 UPDATE가 `id=6`을 수정하면 상황이 한 번 더 바뀌어요. 자신이 쓴 변경은 기존 Read View와 관계없이 볼 수 있기 때문에, 마지막 일반 SELECT에도 `id=6`이 나타나요. 이때 A는 과거 스냅샷의 행들과 자신이 새로 수정한 행을 함께 보게 돼요.
+그다음 UPDATE가 `id=6`을 수정하면 상황이 한 번 더 바뀌어요. 자신이 쓴 변경은 기존 Read View와 관계없이 볼 수 있기 때문에, 마지막 일반 SELECT에도 `id=6`이 나타나요. 결과적으로 기존 스냅샷의 세 행과 A가 직접 수정한 `id=6`이 함께 보여 총 네 건이 돼요.
 
 ## PostgreSQL의 REPEATABLE READ는 어떨까?
 
