@@ -5,7 +5,7 @@ import { allBlogs } from 'contentlayer/generated'
 import categoryData from 'app/category-data.json'
 import { notFound } from 'next/navigation'
 
-const POSTS_PER_PAGE = 5
+const POSTS_PER_PAGE = 10
 
 const categories = categoryData as Record<string, { name: string; count: number }>
 
