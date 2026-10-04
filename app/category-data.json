@@ -3,8 +3,20 @@
     "name": "Security",
     "count": 3
   },
-  "backend": {
-    "name": "Backend",
-    "count": 8
+  "http--api": {
+    "name": "HTTP & API",
+    "count": 4
+  },
+  "database": {
+    "name": "Database",
+    "count": 2
+  },
+  "system-design": {
+    "name": "System Design",
+    "count": 1
+  },
+  "development-practices": {
+    "name": "Development Practices",
+    "count": 1
   }
 }

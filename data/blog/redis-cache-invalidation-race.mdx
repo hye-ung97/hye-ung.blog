@@ -2,7 +2,7 @@
 title: 'Redis 캐시를 삭제했는데도 오래된 데이터가 조회되는 이유'
 date: '2026-10-04'
 tags: ['redis', 'cache', 'concurrency', 'backend']
-category: 'Backend'
+category: 'Database'
 draft: false
 summary: 'DB를 수정하고 Redis 캐시까지 지웠는데 이전 값이 다시 조회된다면? 읽기와 쓰기 요청이 엇갈리는 상황을 재현하고, TTL과 캐시 무효화의 한계, 데이터별 선택 기준을 살펴본다.'
 images: ['/static/images/redis-cache-invalidation-race/stale-repopulation-v2.png']

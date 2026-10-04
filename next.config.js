@@ -87,6 +87,20 @@ module.exports = () => {
       ],
       unoptimized,
     },
+    async redirects() {
+      return [
+        {
+          source: '/blog/category/backend',
+          destination: '/blog',
+          permanent: true,
+        },
+        {
+          source: '/blog/category/backend/page/:page',
+          destination: '/blog',
+          permanent: true,
+        },
+      ]
+    },
     async headers() {
       return [
         {
