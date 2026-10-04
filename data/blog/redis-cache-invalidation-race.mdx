@@ -18,7 +18,11 @@ images: ['/static/images/redis-cache-invalidation-race/stale-repopulation-v2.png
 
 ## 익숙한 캐싱 코드에서 시작하기
 
-먼저 Node.js에서 조회와 수정 로직을 작성한다고 해보자. Redis 호출은 [node-redis](https://redis.io/docs/latest/develop/clients/nodejs/)의 형태를 따르고, DB 접근 부분은 흐름이 잘 보이도록 간단히 적었다. Redis 클라이언트는 이미 연결돼 있다고 가정한다.
+이런 조회 방식을 [Cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/)라고 한다. 애플리케이션이 먼저 캐시를 확인하고, 값이 없으면 DB에서 조회해 캐시에 저장한다.
+
+데이터가 수정되면 DB 변경을 커밋한 뒤 기존 캐시를 삭제한다. 다음 조회에서 변경된 값을 가져와 캐시를 다시 채우도록 하기 위해서다.
+
+이 흐름을 Node.js 코드로 옮겨보자. Redis 호출은 [node-redis](https://redis.io/docs/latest/develop/clients/nodejs/)의 형태를 따르고, DB 접근 부분은 흐름이 잘 보이도록 간단히 적었다. Redis 클라이언트는 이미 연결돼 있다고 가정한다.
 
 ```javascript
 async function getPrice(productId) {
@@ -38,8 +42,6 @@ async function updatePrice(productId, price) {
   await redis.del(`product:${productId}:price`)
 }
 ```
-
-캐시가 없을 때 DB를 읽고 결과를 저장하는 흐름을 [Cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/)라고 한다. 수정할 때는 DB 변경을 커밋한 뒤 해당 캐시를 지운다.
 
 `updatePriceAndCommit`은 DB 커밋이 끝나야 완료되는 함수다. 이번에는 DB 커밋과 Redis 명령이 모두 정상적으로 처리된다고 가정한다. Redis 복제 지연도 없다. 이 조건에서도 요청 순서가 엇갈리면 문제가 생긴다.
 
