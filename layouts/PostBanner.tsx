@@ -6,19 +6,22 @@ import type { Blog } from 'contentlayer/generated'
 import Comments from '@/components/Comments'
 import Link from '@/components/Link'
 import PageTitle from '@/components/PageTitle'
+import PostDate from '@/components/PostDate'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import CopyLinkButton from '@/components/CopyLinkButton'
 
 interface LayoutProps {
   content: CoreContent<Blog>
+  shareUrl: string
   children: ReactNode
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
 }
 
-export default function PostMinimal({ content, next, prev, children }: LayoutProps) {
-  const { slug, title, images } = content
+export default function PostMinimal({ content, shareUrl, next, prev, children }: LayoutProps) {
+  const { slug, title, images, date } = content
   const displayImage =
     images && images.length > 0 ? images[0] : 'https://picsum.photos/seed/picsum/800/400'
 
@@ -38,8 +41,15 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
             <div className="relative pt-10">
               <PageTitle>{title}</PageTitle>
             </div>
+            <div className="flex flex-wrap items-start justify-center gap-x-2 gap-y-2 pt-6">
+              <PostDate date={date} className="min-h-11" />
+              <CopyLinkButton key={shareUrl} url={shareUrl} tooltipPlacement="bottom" />
+            </div>
           </div>
           <div className="prose dark:prose-invert max-w-none py-4">{children}</div>
+          <div className="py-4">
+            <CopyLinkButton key={shareUrl} url={shareUrl} />
+          </div>
           {siteMetadata.comments && (
             <div className="pt-6 pb-6 text-center text-gray-700 dark:text-gray-300" id="comment">
               <Comments slug={slug} />

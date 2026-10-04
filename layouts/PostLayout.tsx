@@ -11,16 +11,25 @@ import Tag from '@/components/Tag'
 import TableOfContents from '@/components/TableOfContents'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import CopyLinkButton from '@/components/CopyLinkButton'
 
 interface LayoutProps {
   content: CoreContent<Blog>
   authorDetails: CoreContent<Authors>[]
+  shareUrl: string
   next?: { path: string; title: string }
   prev?: { path: string; title: string }
   children: ReactNode
 }
 
-export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
+export default function PostLayout({
+  content,
+  authorDetails,
+  shareUrl,
+  next,
+  prev,
+  children,
+}: LayoutProps) {
   const { path, slug, date, title, tags, toc } = content
   const basePath = path.split('/')[0]
 
@@ -34,7 +43,10 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
               <div>
                 <PageTitle>{title}</PageTitle>
               </div>
-              <PostDate date={date} className="justify-center" />
+              <div className="flex flex-wrap items-start justify-center gap-x-2 gap-y-2">
+                <PostDate date={date} className="min-h-11" />
+                <CopyLinkButton key={shareUrl} url={shareUrl} tooltipPlacement="bottom" />
+              </div>
             </div>
             <dl className="pt-6">
               <dt className="sr-only">Authors</dt>
@@ -81,6 +93,9 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
             <div className="divide-y divide-gray-200 xl:col-span-3 xl:col-start-1 xl:row-start-1 dark:divide-gray-700">
               <div className="prose dark:prose-invert max-w-none pt-10 pb-8">{children}</div>
               <footer>
+                <div className="py-4">
+                  <CopyLinkButton key={shareUrl} url={shareUrl} />
+                </div>
                 <div className="text-sm leading-5 font-medium">
                   {tags && (
                     <div className="py-4">
