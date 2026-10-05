@@ -1,114 +1,121 @@
-// Rebuild the article's PNG diagrams with the project's existing sharp installation.
-// Run with Node 22 from the repository root.
+// Rebuild the article's diagrams with the project's existing sharp installation.
 import { mkdir } from 'node:fs/promises'
 import sharp from 'sharp'
 
 const output = new URL('../../public/static/images/redis-cache-invalidation-race/', import.meta.url)
 await mkdir(output, { recursive: true })
 
-const ink = '#172033'
-const muted = '#667085'
-const blue = '#4f46e5'
-const green = '#087f72'
-const orange = '#b54708'
+const ink = '#25303b'
+const muted = '#68737d'
+const line = '#cbd2d8'
+const blue = '#286887'
 const escape = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
 
-function text(x, y, label, size = 34, color = ink, weight = 500, anchor = 'start') {
+function text(x, y, label, size = 23, color = ink, weight = 400, anchor = 'start') {
   return `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}" text-anchor="${anchor}">${escape(label)}</text>`
 }
 
-function box(x, y, width, height, fill = '#fff', stroke = '#e4e7ec', dashed = false) {
-  return `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="18" fill="${fill}" stroke="${stroke}" stroke-width="2" ${dashed ? 'stroke-dasharray="8 8"' : ''}/>`
+function path(d, color = line, width = 1.5, dashed = false, arrow = false) {
+  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" ${dashed ? 'stroke-dasharray="6 6"' : ''} ${arrow ? `marker-end="url(#${color === blue ? 'blue' : 'gray'}-arrow)"` : ''}/>`
 }
 
-function step(number, y, side) {
-  const edge = side === 'left' ? 490 : 610
-  return `<line x1="550" y1="${y}" x2="${edge}" y2="${y}" stroke="#cbd1db" stroke-width="3"/>
-    <circle cx="550" cy="${y}" r="25" fill="#f6f7fb" stroke="#cbd1db" stroke-width="2"/>
-    ${text(550, y + 11, number, 30, muted, 600, 'middle')}`
+function arrow(x1, y1, x2, y2, color = ink, dashed = false) {
+  return path(`M${x1} ${y1} L${x2} ${y2}`, color, 2, dashed, true)
 }
 
 function svg(width, height, body) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <style>text { font-family: 'Apple SD Gothic Neo', 'Noto Sans CJK KR', sans-serif; }</style>
-    <rect width="${width}" height="${height}" rx="24" fill="#f6f7fb"/>
+    <defs>${[
+      ['gray', ink],
+      ['blue', blue],
+    ]
+      .map(
+        ([name, color]) =>
+          `<marker id="${name}-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="${color}" stroke-width="1.2"/></marker>`
+      )
+      .join('')}</defs>
+    <rect width="${width}" height="${height}" fill="#fff"/>
     ${body}
   </svg>`
 }
 
 const race = svg(
-  1100,
-  1280,
+  960,
+  644,
   [
-    text(55, 75, '삭제 후에 돌아온 오래된 값', 46, ink, 700),
-    text(55, 122, '아래로 갈수록 시간이 흐른다', 30, muted),
-    box(80, 168, 410, 62, '#eeecff', '#eeecff'),
-    text(285, 210, '조회 요청 A', 34, blue, 700, 'middle'),
-    box(610, 168, 410, 62, '#e4f4ee', '#e4f4ee'),
-    text(815, 210, '수정 요청 B', 34, green, 700, 'middle'),
-    '<path d="M550 258 V1014" stroke="#cbd1db" stroke-width="3" stroke-dasharray="7 9"/>',
-    box(80, 266, 410, 98),
-    text(110, 327, '캐시 miss', 38, blue, 650),
-    step(1, 315, 'left'),
-    box(80, 400, 410, 126),
-    text(110, 446, 'DB 조회', 32, muted),
-    text(110, 498, '10,000원', 46, ink, 700),
-    step(2, 463, 'left'),
-    box(80, 563, 410, 250, '#f0f2f6', '#cbd1db', true),
-    text(285, 657, '저장 직전 대기', 34, muted, 600, 'middle'),
-    text(285, 714, 'A가 읽어둔 값은', 30, muted, 500, 'middle'),
-    text(285, 761, '아직 10,000원', 38, ink, 650, 'middle'),
-    box(610, 563, 410, 116, '#e4f4ee', '#b4dcd0'),
-    text(640, 608, 'DB 수정 후 커밋', 32, green, 600),
-    text(640, 657, '12,000원', 44, green, 700),
-    step(3, 621, 'right'),
-    box(610, 721, 410, 92),
-    text(640, 779, '캐시 삭제', 38, green, 650),
-    step(4, 767, 'right'),
-    box(80, 865, 410, 132, '#fff3e8', '#ecc4a4'),
-    text(110, 913, '이전 값을 다시 저장', 32, orange, 600),
-    text(110, 966, '10,000원', 46, orange, 700),
-    step(5, 931, 'left'),
-    '<line x1="55" y1="1040" x2="1045" y2="1040" stroke="#dce1e9" stroke-width="2"/>',
-    box(55, 1071, 475, 130, '#e4f4ee', '#b4dcd0'),
-    text(85, 1117, '최종 DB', 30, green, 600),
-    text(85, 1171, '12,000원', 46, green, 700),
-    box(570, 1071, 475, 130, '#fff3e8', '#ecc4a4'),
-    text(600, 1117, '최종 Redis', 30, orange, 600),
-    text(600, 1171, '10,000원', 46, orange, 700),
-    text(550, 1250, '다음 조회는 캐시의 10,000원을 받는다', 31, muted, 500, 'middle'),
+    text(36, 36, '캐시 삭제 뒤에 이전 값이 다시 저장되는 순서', 21, muted),
+    path('M36 57 H924'),
+    ...[
+      [120, '조회 요청 A'],
+      [366, 'DB'],
+      [594, '수정 요청 B'],
+      [838, 'Redis'],
+    ].flatMap(([x, label]) => [
+      text(x, 102, label, 24, ink, 500, 'middle'),
+      path(`M${x} 124 V516`, line, 1.5, true),
+    ]),
+    arrow(36, 138, 36, 507, muted),
+    text(36, 534, '시간', 18, muted, 400, 'middle'),
+    arrow(120, 147, 828, 147),
+    text(712, 134, 'GET', 21, muted, 400, 'middle'),
+    arrow(838, 185, 130, 185, ink, true),
+    text(712, 172, 'miss', 21, muted, 400, 'middle'),
+    arrow(120, 221, 356, 221),
+    text(243, 208, '가격 조회', 22, ink, 400, 'middle'),
+    arrow(366, 261, 130, 261, ink, true),
+    text(243, 248, '10,000원', 22, ink, 500, 'middle'),
+    '<rect x="112" y="279" width="16" height="175" fill="#f1f3f5" stroke="#cbd2d8" stroke-width="1.5"/>',
+    text(150, 333, '저장 대기', 22, muted),
+    text(150, 363, '읽어둔 값 유지', 19, muted),
+    arrow(594, 316, 376, 316),
+    text(480, 303, '가격 수정 12,000원', 21, ink, 400, 'middle'),
+    arrow(366, 354, 584, 354, ink, true),
+    text(480, 341, '커밋 완료', 21, ink, 400, 'middle'),
+    arrow(594, 395, 828, 395),
+    text(716, 382, 'DEL', 21, ink, 400, 'middle'),
+    arrow(838, 433, 604, 433, ink, true),
+    text(716, 420, '0 (키 없음)', 21, muted, 400, 'middle'),
+    arrow(120, 490, 828, 490, blue),
+    text(480, 477, '이전 값 10,000원 SET', 23, blue, 500, 'middle'),
+    path('M36 550 H924'),
+    text(120, 589, 'DB 12,000원', 24, ink, 500),
+    text(838, 589, 'Redis 10,000원', 24, blue, 500, 'end'),
+    text(480, 626, '만료 전 다음 조회는 캐시의 10,000원을 반환한다', 21, muted, 400, 'middle'),
   ].join('\n')
 )
 
 const ttl = svg(
-  1100,
-  815,
+  960,
+  420,
   [
-    text(55, 75, 'TTL은 재저장 시점부터 흐른다', 46, ink, 700),
-    text(55, 123, '조회할 때 만료 시간을 연장하지 않는 경우', 30, muted),
-    '<path d="M98 220 V660" stroke="#cbd1db" stroke-width="4"/>',
-    box(160, 178, 800, 100, '#e4f4ee', '#b4dcd0'),
-    text(190, 240, 'B의 DB 수정', 36, green, 650),
-    text(920, 240, '12,000원', 42, green, 700, 'end'),
-    '<circle cx="98" cy="228" r="14" fill="#087f72"/>',
-    box(160, 329, 800, 104, '#fff3e8', '#ecc4a4'),
-    text(190, 393, 'A의 이전 값 재저장', 36, orange, 650),
-    text(920, 393, '10,000원', 42, orange, 700, 'end'),
-    '<circle cx="98" cy="381" r="14" fill="#b54708"/>',
-    box(160, 458, 800, 107, '#eeecff', '#d8d3fb'),
-    text(560, 501, 'SET 실행부터 TTL 2초', 36, blue, 700, 'middle'),
-    text(560, 542, '그동안 cache hit은 10,000원을 반환', 30, blue, 500, 'middle'),
-    box(160, 609, 800, 104, '#e4f4ee', '#b4dcd0'),
-    text(190, 673, '만료 후 다음 조회', 36, green, 650),
-    text(920, 673, '12,000원', 42, green, 700, 'end'),
-    '<circle cx="98" cy="661" r="14" fill="#087f72"/>',
-    text(550, 774, 'DB 수정 시점과 캐시 TTL의 시작은 다르다', 32, muted, 500, 'middle'),
+    text(36, 36, 'TTL은 이전 값을 저장한 시점부터 흐른다', 21, muted),
+    path('M36 57 H924'),
+    text(36, 94, '조회 시 TTL 연장이나 같은 이전 값의 추가 저장이 없는 경우', 20, muted),
+    text(110, 153, 'B의 DB 커밋', 22, ink, 500, 'middle'),
+    text(110, 183, '12,000원', 21, muted, 400, 'middle'),
+    text(330, 153, 'A의 SET', 22, ink, 500, 'middle'),
+    text(330, 183, '10,000원', 21, muted, 400, 'middle'),
+    text(680, 153, '키 만료', 22, ink, 500, 'middle'),
+    text(865, 153, '다음 조회', 22, ink, 500, 'middle'),
+    text(865, 183, 'DB 12,000원', 21, muted, 400, 'middle'),
+    arrow(68, 224, 924, 224),
+    path('M330 224 H680', blue, 3),
+    ...[110, 330, 680, 865].map((x) => path(`M${x} 214 V234`, ink, 2)),
+    text(505, 209, '캐시 hit → 10,000원', 21, blue, 400, 'middle'),
+    path('M110 259 V272 H330 V259', muted),
+    text(220, 306, '저장 지연', 21, muted, 400, 'middle'),
+    path('M330 259 V272 H680 V259', blue, 2),
+    text(505, 306, 'TTL 2초', 23, blue, 500, 'middle'),
+    text(924, 257, '시간', 18, muted, 400, 'end'),
+    path('M36 351 H924'),
+    text(480, 391, 'TTL은 DB 수정 시점이 아니라 SET 시점부터 계산한다', 22, ink, 400, 'middle'),
   ].join('\n')
 )
 
 for (const [name, source] of [
-  ['stale-repopulation-v2', race],
-  ['ttl-window-v2', ttl],
+  ['stale-repopulation-v3', race],
+  ['ttl-window-v3', ttl],
 ]) {
   await sharp(Buffer.from(source), { density: 144 })
     .png()
