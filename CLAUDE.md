@@ -27,3 +27,30 @@
 - Run `yarn prettier --check` on the post; the pre-commit hook runs prettier on md, mdx and json files.
 - Launch `yarn dev` through a shell (`sh -c 'yarn dev'` in `.claude/launch.json`): the script expands `$PWD`, and without a shell it fails with `Unbound variable "PWD"`. While it runs, contentlayer rewrites `app/tag-data.json` and `app/category-data.json`; commit them with the post.
 - The commit message is `Add <nth> post: <English title>` (e.g. `Add fifth post: TDD in the AI era`), with a body that says what changed from the draft.
+
+## Writing book summaries
+
+- A book is `data/books/<book>.mdx`, served at `/books/<book>`; its body is an optional introduction. A chapter summary is `data/books/<book>/<NN-ascii-slug>.mdx` (e.g. `05-replication.mdx`), served at `/books/<book>/<NN-ascii-slug>`. The folder name must match the book's file name, and a book folder never gets an `index.mdx`.
+- Book pages and summaries appear under Books, in the sitemap and in search, but not in the blog list, tags, categories, RSS or the home page.
+- Images, the cover included, go in `public/static/images/books/<book>/`. The image rules for posts apply.
+
+### Book frontmatter
+
+- `title`, `author`, `startedAt` and `parts` are required. `translator`, `publisher`, `cover`, `status` (`'reading'` or `'finished'`), `finishedAt`, `summary` (a one-line review) and `draft` are optional.
+- `parts` is the book's whole table of contents, unwritten chapters included: the book page lists those as "준비 중".
+
+  ```yaml
+  parts:
+    - label: '2부'
+      title: '분산 데이터'
+      chapters:
+        - { chapter: 5, title: '복제' }
+  ```
+
+  A book without parts has one entry with only `chapters`. A chapter's `label` replaces its printed number, for entries like '서문' or '부록 A'.
+
+### Chapter frontmatter
+
+- Use `title`, `chapter` (the number in the book's `parts` it summarizes), `date`, `summary` (one sentence on what it covers, in the body's speech level) and `draft: false`.
+- Numbers and booleans stay unquoted (`chapter: 5`, `draft: false`). Contentlayer drops a summary whose `chapter` is `'5'` with only a warning, and a quoted number in `parts` drops the whole book. `checkBooks` in `contentlayer.config.ts` catches the rest (an unknown status, a duplicate number, a summary whose number isn't in `parts`): a warning in dev, a failed production build.
+- Commit a new book as `Add book: <English title>` and a summary as `Add book summary: <English book title> ch. <N> <English chapter title>` (e.g. `Add book summary: DDIA ch. 5 Replication`).

@@ -32,24 +32,27 @@ function useActiveHeading(ids: string[]) {
   return activeId
 }
 
-interface Props {
-  toc: Toc
-}
-
-export default function TableOfContents({ toc }: Props) {
+// The h2 and h3 headings and the one being read. Book chapters use it too, to list a chapter's
+// headings under that chapter in the book's table of contents.
+export function useTocHeadings(toc: Toc) {
   const headings = useMemo(
     () => toc.filter((heading) => heading.depth === 2 || heading.depth === 3),
     [toc]
   )
   const ids = useMemo(() => headings.map((heading) => heading.url.slice(1)), [headings])
   const activeId = useActiveHeading(ids)
+  return { headings, activeId }
+}
 
-  if (headings.length === 0) {
-    return null
-  }
+interface TocListProps {
+  headings: Toc
+  activeId: string
+  className?: string
+}
 
-  const list = (
-    <ul className="border-l border-gray-200 text-sm dark:border-gray-700">
+export function TocList({ headings, activeId, className = '' }: TocListProps) {
+  return (
+    <ul className={`border-l border-gray-200 text-sm dark:border-gray-700 ${className}`}>
       {headings.map((heading) => {
         const isActive = heading.url === `#${activeId}`
         return (
@@ -70,6 +73,20 @@ export default function TableOfContents({ toc }: Props) {
       })}
     </ul>
   )
+}
+
+interface Props {
+  toc: Toc
+}
+
+export default function TableOfContents({ toc }: Props) {
+  const { headings, activeId } = useTocHeadings(toc)
+
+  if (headings.length === 0) {
+    return null
+  }
+
+  const list = <TocList headings={headings} activeId={activeId} />
 
   return (
     <>
