@@ -31,7 +31,7 @@
 ## Writing book summaries
 
 - A book is `data/books/<book>.mdx`, served at `/books/<book>`; its body is an optional introduction. A chapter summary is `data/books/<book>/<NN-ascii-slug>.mdx` (e.g. `05-replication.mdx`), served at `/books/<book>/<NN-ascii-slug>`. The folder name must match the book's file name, and a book folder never gets an `index.mdx`.
-- Book pages and summaries appear under Books, in the sitemap and in search, but not in the blog list, tags, categories, RSS or the home page.
+- Book pages and summaries appear under Books, in the sitemap and in search, but not in the blog list, tags, categories or RSS. The home page's Books section shows the first four books of the shelf (`getBooks()` order) as cover cards.
 - Images, the cover included, go in `public/static/images/books/<book>/`. The image rules for posts apply.
 
 ### Book frontmatter
