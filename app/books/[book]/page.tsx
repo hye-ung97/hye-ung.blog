@@ -72,11 +72,6 @@ export default async function BookPage(props: { params: Params }) {
         </div>
       </div>
       <div className="mt-10 space-y-10 md:mt-0">
-        {book.summary && (
-          <p className="border-primary-500 border-l-2 pl-4 text-lg leading-8 break-keep text-gray-700 dark:text-gray-300">
-            {book.summary}
-          </p>
-        )}
         <section>
           <h2 className={`${labelClass} mb-4`}>목차</h2>
           <BookOutline outline={outline} />

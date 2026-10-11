@@ -1,0 +1,88 @@
+---
+title: '타입 추론'
+chapter: 3
+date: '2024-07-09'
+lastmod: '2026-10-11'
+summary: '타입 추론을 활용해 반복을 줄이고, 변수의 역할을 나누며, 타입 넓히기와 좁히기가 어떻게 동작하는지 정리한다.'
+draft: false
+---
+
+타입스크립트는 초기값과 코드의 흐름으로부터 타입을 추론한다. 추론 결과를 이해하면 불필요한 타입 선언을 줄이고, 값이 어떤 상태인지 더 안전하게 다룰 수 있다.
+
+## 추론 가능한 타입은 반복해서 적지 않기
+
+```typescript
+const title = '타입 추론'
+const chapters = [1, 2, 3]
+```
+
+초기값만으로 타입이 분명하다면 `string`이나 `number[]`를 다시 적을 필요가 없는 경우가 많다.
+
+함수의 반환 타입은 별도로 생각할 수 있다. 공개 함수의 계약을 명확하게 하거나, 구현을 바꿨을 때 의도하지 않은 반환 타입 변화가 생기는지 검사하려면 명시하는 편이 좋다.
+
+```typescript
+interface ChapterSummary {
+  title: string
+  length: number
+}
+
+function summarizeChapter(title: string): ChapterSummary {
+  return { title, length: title.length }
+}
+```
+
+## 다른 역할에는 다른 변수 사용하기
+
+하나의 변수를 문자열 식별자와 검색 결과 객체에 번갈아 사용하면, 타입이 복잡해지고 변수 이름도 애매해진다.
+
+역할별로 변수를 나누면 값의 의미를 구체적으로 표현할 수 있다. 타입 추론이 쉬워지고, 값을 다시 할당할 이유가 줄어 `const`를 사용할 수 있는 경우도 늘어난다.
+
+변수의 값이 바뀔 수 있다는 것과 타입이 어떤 값이든 받아들인다는 것은 다르다. 여러 타입을 담아야 한다면 그 범위를 유니온으로 표현한다.
+
+## 타입 넓히기
+
+타입스크립트는 초기값 하나만 허용할지, 이후 다른 값도 받을 수 있게 할지 판단한다.
+
+```typescript
+let direction = 'left' // string
+const fixedDirection = 'left' // 'left'
+```
+
+`let` 변수는 재할당할 수 있으므로 문자열 리터럴에서 `string`으로 넓혀진다. `const`로 선언한 문자열 값은 해당 리터럴 타입을 유지한다.
+
+객체의 속성은 객체 변수 자체를 `const`로 선언해도 변경할 수 있다. 그래서 속성의 타입은 여전히 넓어질 수 있다.
+
+```typescript
+const options = { direction: 'left' } // direction: string
+const fixedOptions = { direction: 'left' } as const // readonly direction: 'left'
+```
+
+원하는 추론 결과가 나오지 않으면 명시적인 타입을 제공하거나, 사용되는 문맥을 분명하게 하거나, `as const`를 사용할 수 있다. `as const`도 런타임에 객체를 동결하는 기능은 아니다.
+
+## 타입 좁히기
+
+타입 좁히기는 조건을 확인한 뒤, 가능한 값의 범위를 줄이는 과정이다.
+
+```typescript
+const statusElement = document.getElementById('status') // HTMLElement | null
+
+if (statusElement !== null) {
+  statusElement.textContent = '완료' // 여기서는 HTMLElement
+}
+```
+
+요소가 존재하는지 검사한 분기 안에서는 `null`이 제외된다. 그 뒤에 요소의 속성에 접근할 수 있다.
+
+`instanceof`도 런타임 검사 결과를 이용해 타입을 좁힌다.
+
+```typescript
+function matchesTitle(title: string, query: string | RegExp): boolean {
+  if (query instanceof RegExp) {
+    return query.test(title) // query: RegExp
+  }
+
+  return title.includes(query) // query: string
+}
+```
+
+타입 단언으로 결과를 알려주기 전에, 실제 조건 검사로 타입을 좁힐 수 있는지 살펴본다. 검사 방법과 제어 흐름에 따른 추론은 [공식 문서](https://www.typescriptlang.org/docs/handbook/2/narrowing.html)에 정리돼 있다.
