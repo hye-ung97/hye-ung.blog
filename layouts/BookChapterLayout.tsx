@@ -21,7 +21,7 @@ interface LayoutProps {
   book: { title: string; path: string; cover?: string }
   outline: BookOutline
   content: ChapterMeta
-  // 'Chapter 05 · 2부 분산 데이터'
+  // 'Chapter 05 2부 분산 데이터'
   label: string
   prev?: Neighbour
   next?: Neighbour
@@ -41,8 +41,7 @@ export default function BookChapterLayout({
   shareUrl,
   children,
 }: LayoutProps) {
-  const { slug, date, title, toc, readingTime, chapter } = content
-  const minutes = Math.max(1, Math.round(readingTime.minutes))
+  const { slug, date, title, toc, chapter } = content
 
   return (
     <>
@@ -100,11 +99,6 @@ export default function BookChapterLayout({
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 text-sm text-gray-500 dark:text-gray-400">
               <PostDate date={date} />
-              <span aria-hidden="true">·</span>
-              <span>
-                <span className="sr-only">읽는 시간 </span>
-                {minutes}분
-              </span>
               <CopyLinkButton key={shareUrl} url={shareUrl} tooltipPlacement="bottom" />
             </div>
           </header>
@@ -112,7 +106,7 @@ export default function BookChapterLayout({
             <details className="group border-y border-gray-200 dark:border-gray-700">
               <summary className="cursor-pointer list-none py-4 [&::-webkit-details-marker]:hidden">
                 <span className="flex items-center justify-between text-xs font-medium tracking-wide text-gray-500 dark:text-gray-400">
-                  목차 · {outline.written}/{outline.total}장 정리
+                  목차 {outline.written}/{outline.total}장 정리
                   {/* The same plus and minus as the Contents disclosure right below it */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

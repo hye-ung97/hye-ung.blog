@@ -37,7 +37,7 @@ export async function generateMetadata(props: { params: Params }): Promise<Metad
     return
   }
 
-  const title = `${chapter.title} · ${book.title}`
+  const title = `${chapter.title} | ${book.title}`
   let imageList = [book.cover || siteMetadata.socialBanner]
   if (chapter.images) {
     imageList = typeof chapter.images === 'string' ? [chapter.images] : chapter.images

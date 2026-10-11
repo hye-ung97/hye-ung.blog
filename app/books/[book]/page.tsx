@@ -39,7 +39,7 @@ export default async function BookPage(props: { params: Params }) {
   const outline = buildBookOutline(book, getChapters(book.slug))
   const credits = [book.author, book.translator && `${book.translator} 옮김`, book.publisher]
     .filter(Boolean)
-    .join(' · ')
+    .join(', ')
 
   return (
     <div className="pt-6 pb-8 md:grid md:grid-cols-[200px_minmax(0,1fr)] md:gap-x-10 xl:grid-cols-[260px_minmax(0,1fr)] xl:gap-x-16">

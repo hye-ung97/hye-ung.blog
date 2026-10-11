@@ -128,7 +128,7 @@ function createSearchIndex(allBlogs, allBooks, allBookChapters) {
       .filter((chapter) => isVisible(chapter) && bookTitles.has(chapter.bookSlug))
       .map((chapter) => ({
         path: chapter.path,
-        title: `${bookTitles.get(chapter.bookSlug)} · ${chapter.title}`,
+        title: `${bookTitles.get(chapter.bookSlug)}: ${chapter.title}`,
         summary: chapter.summary,
         date: chapter.date,
       }))

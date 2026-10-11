@@ -3,7 +3,7 @@ import { STATUS_LABEL, type BookStatus } from 'lib/books'
 interface Props {
   written: number
   total: number
-  // Prefixes the count on the shelf: '읽는 중 · 5/12장 정리'
+  // Prefixes the count on the shelf: '읽는 중 5/12장 정리'
   status?: BookStatus
   className?: string
 }
@@ -11,7 +11,7 @@ interface Props {
 export default function BookProgress({ written, total, status, className = '' }: Props) {
   const text = [status && STATUS_LABEL[status], total > 0 && `${written}/${total}장 정리`]
     .filter(Boolean)
-    .join(' · ')
+    .join(' ')
 
   return (
     <div className={className}>

@@ -178,16 +178,16 @@ export function hasLabels(outline: BookOutline) {
   return outline.parts.some((part) => part.entries.some((entry) => entry.label))
 }
 
-// '2부 · 분산 데이터'
+// '2부 분산 데이터'
 export function partHeading(part: OutlinePart) {
-  return [part.label, part.title].filter(Boolean).join(' · ') || undefined
+  return [part.label, part.title].filter(Boolean).join(' ') || undefined
 }
 
-// 'Chapter 05 · 2부 분산 데이터'
+// 'Chapter 05 2부 분산 데이터'
 export function chapterLabel(entry: { chapter: number; label?: string }, part?: OutlinePart) {
   const name = entry.label ?? `Chapter ${pad(entry.chapter)}`
   const partName = part && [part.label, part.title].filter(Boolean).join(' ')
-  return partName ? `${name} · ${partName}` : name
+  return partName ? `${name} ${partName}` : name
 }
 
 // contentlayer stores dates in UTC, so label them in KST like the archive page does
