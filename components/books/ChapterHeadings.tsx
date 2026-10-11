@@ -8,5 +8,5 @@ import { TocList, useTocHeadings } from '@/components/TableOfContents'
 export default function ChapterHeadings({ toc }: { toc: Toc }) {
   const { headings, activeId } = useTocHeadings(toc)
   if (headings.length === 0) return null
-  return <TocList headings={headings} activeId={activeId} className="mt-1 mb-3 ml-10" />
+  return <TocList headings={headings} activeId={activeId} className="mt-1 mb-3" />
 }

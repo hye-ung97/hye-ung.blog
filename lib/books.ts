@@ -172,6 +172,12 @@ export function chapterNumber(entry: { chapter: number; label?: string }) {
   return entry.label ?? pad(entry.chapter)
 }
 
+// Labels such as '부록 A' are wider than a two-digit number, so a book that has them gets a wider
+// number column and its titles stay aligned
+export function hasLabels(outline: BookOutline) {
+  return outline.parts.some((part) => part.entries.some((entry) => entry.label))
+}
+
 // '2부 · 분산 데이터'
 export function partHeading(part: OutlinePart) {
   return [part.label, part.title].filter(Boolean).join(' · ') || undefined

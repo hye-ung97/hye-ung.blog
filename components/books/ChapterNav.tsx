@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import Link from '@/components/Link'
-import { chapterNumber, partHeading, type BookOutline } from 'lib/books'
+import { chapterNumber, hasLabels, partHeading, type BookOutline } from 'lib/books'
 
 interface Props {
   outline: BookOutline
@@ -11,6 +11,11 @@ interface Props {
 
 // The book's table of contents beside a chapter, with the chapter being read highlighted
 export default function ChapterNav({ outline, current, headings }: Props) {
+  const labelled = hasLabels(outline)
+  // The headings line up under the chapter titles: px-2, the number column and gap-2
+  const numberWidth = labelled ? 'min-w-12' : 'min-w-6'
+  const headingsIndent = labelled ? 'ml-16' : 'ml-10'
+
   return (
     <div className="space-y-5 text-sm">
       {outline.parts.map((part, index) => {
@@ -27,7 +32,9 @@ export default function ChapterNav({ outline, current, headings }: Props) {
                 const isCurrent = entry.chapter === current
                 const label = (
                   <>
-                    <span className="min-w-6 shrink-0 tabular-nums">{chapterNumber(entry)}</span>
+                    <span className={`${numberWidth} shrink-0 tabular-nums`}>
+                      {chapterNumber(entry)}
+                    </span>
                     <span className="break-keep">{entry.title}</span>
                   </>
                 )
@@ -51,7 +58,7 @@ export default function ChapterNav({ outline, current, headings }: Props) {
                         <span className="sr-only">(준비 중)</span>
                       </span>
                     )}
-                    {isCurrent && headings}
+                    {isCurrent && headings && <div className={headingsIndent}>{headings}</div>}
                   </li>
                 )
               })}
