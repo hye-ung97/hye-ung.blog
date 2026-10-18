@@ -29,8 +29,8 @@ interface LayoutProps {
   children: ReactNode
 }
 
-// A chapter summary read like a docs page: the book's table of contents stays on the left, with the
-// chapter's own headings nested under it, so the article keeps the 3/4 width posts have.
+// Keep the article first and the book's table of contents on the right, with extra space
+// between them so the chapter's nested headings don't crowd the reading column.
 export default function BookChapterLayout({
   book,
   outline,
@@ -46,34 +46,8 @@ export default function BookChapterLayout({
   return (
     <>
       <ScrollTopAndComment />
-      <div className="pt-6 pb-8 xl:grid xl:grid-cols-4 xl:gap-x-6">
-        <aside className="hidden xl:col-start-1 xl:row-start-1 xl:block">
-          <nav
-            aria-label="책 목차"
-            className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain pr-2 pb-4"
-          >
-            <Link href={`/${book.path}`} className="group flex items-center gap-3">
-              <BookCover
-                title={book.title}
-                cover={book.cover}
-                sizes="48px"
-                className="w-12 shrink-0"
-              />
-              <span className="group-hover:text-primary-500 dark:group-hover:text-primary-400 text-sm leading-snug font-bold break-keep text-gray-900 dark:text-gray-100">
-                {book.title}
-              </span>
-            </Link>
-            <BookProgress written={outline.written} total={outline.total} className="mt-4" />
-            <div className="mt-6">
-              <ChapterNav
-                outline={outline}
-                current={chapter}
-                headings={<ChapterHeadings toc={toc} />}
-              />
-            </div>
-          </nav>
-        </aside>
-        <article className="min-w-0 xl:col-span-3 xl:col-start-2 xl:row-start-1">
+      <div className="pt-6 pb-8 xl:grid xl:grid-cols-4 xl:gap-x-12 2xl:gap-x-16">
+        <article className="min-w-0 xl:col-span-3 xl:col-start-1 xl:row-start-1">
           <nav aria-label="Breadcrumb" className="text-sm text-gray-500 dark:text-gray-400">
             <ol className="flex flex-wrap items-center gap-x-2">
               <li>
@@ -192,6 +166,32 @@ export default function BookChapterLayout({
             </div>
           )}
         </article>
+        <aside className="hidden min-w-0 xl:col-start-4 xl:row-start-1 xl:block">
+          <nav
+            aria-label="책 목차"
+            className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto overscroll-contain pr-2 pb-4"
+          >
+            <Link href={`/${book.path}`} className="group flex items-center gap-3">
+              <BookCover
+                title={book.title}
+                cover={book.cover}
+                sizes="48px"
+                className="w-12 shrink-0"
+              />
+              <span className="group-hover:text-primary-500 dark:group-hover:text-primary-400 text-sm leading-snug font-semibold break-keep text-gray-700 dark:text-gray-300">
+                {book.title}
+              </span>
+            </Link>
+            <BookProgress written={outline.written} total={outline.total} className="mt-4" />
+            <div className="mt-6">
+              <ChapterNav
+                outline={outline}
+                current={chapter}
+                headings={<ChapterHeadings toc={toc} />}
+              />
+            </div>
+          </nav>
+        </aside>
       </div>
     </>
   )
