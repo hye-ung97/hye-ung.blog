@@ -8,10 +8,6 @@ import siteMetadata from '@/data/siteMetadata'
 
 const MAX_DISPLAY = 5
 
-// The shelf is two columns on phones and four from sm up, inside SectionContainer's
-// max-w-3xl (720px of content) or, from xl, max-w-5xl.
-const BOOK_COVER_SIZES = '(min-width: 1280px) 238px, (min-width: 640px) 162px, 50vw'
-
 const sectionLink = 'text-primary-500 hover:text-primary-600 dark:hover:text-primary-400'
 
 interface Props {
@@ -59,10 +55,10 @@ export default function Home({ posts, books }: Props) {
                 책장 &rarr;
               </Link>
             </div>
-            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
+            <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {books.map((book) => (
                 <li key={book.slug}>
-                  <BookCard book={book} headingAs="h3" sizes={BOOK_COVER_SIZES} />
+                  <BookCard book={book} headingAs="h3" />
                 </li>
               ))}
             </ul>

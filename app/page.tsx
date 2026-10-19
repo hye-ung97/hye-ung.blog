@@ -3,9 +3,9 @@ import { allBlogs } from 'contentlayer/generated'
 import { getBooks } from 'lib/books'
 import Main from './Main'
 
-// One row of the home shelf at sm and up. getBooks() puts books being read first,
+// One row of the home shelf at xl and up. getBooks() puts books being read first,
 // then the most recently finished, so this also covers the no-reading-book case.
-const HOME_BOOKS = 4
+const HOME_BOOKS = 5
 
 export default async function Page() {
   const sortedPosts = sortPosts(allBlogs)
