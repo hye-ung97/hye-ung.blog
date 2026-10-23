@@ -1,0 +1,95 @@
+---
+title: '토큰 유출을 고려해 Google ID token을 선택한 이유'
+date: '2026-10-23'
+tags: ['google-cloud', 'authentication', 'security', 'backend']
+category: 'HTTP & API'
+draft: false
+summary: '서버 간 인증 토큰이 유출된다면? 고정 공유 토큰과 Google ID token을 유출 관점에서 비교하고, 발급·검증을 구현해 배포 후 정상 동작까지 확인한 과정을 기록합니다.'
+images: ['/static/images/google-id-token-service-auth/request-flow.svg']
+---
+
+API 서버에서 별도의 파일 처리 서비스를 호출하는 구간에 인증을 추가했습니다. 어떤 토큰을 쓸지 정할 때 먼저 살펴본 것은, 그 값이 유출되면 얼마나 오래, 어디에서 다시 사용할 수 있는지였습니다.
+
+고정된 비밀값을 공유하는 방식과 Google ID token을 이 기준으로 비교했습니다. Google ID token을 선택해 호출하는 쪽의 발급 코드와 받는 쪽의 검증 조건을 맞췄고, 배포 후 실제 동작까지 확인했습니다.
+
+## 유출된 값을 얼마나 오래 쓸 수 있을까?
+
+서버 간 인증을 붙이는 방법 중 하나는 양쪽 서버가 같은 비밀값을 저장하고 요청 헤더로 전달하는 것입니다. 여기서 비교한 server-to-server token은 이런 고정값 공유 방식입니다. 고정된 API 키를 공유하는 구성도 비슷하게 볼 수 있습니다.
+
+별도 만료가 없다면 유출을 알아채고 값을 바꾸거나 수신을 차단하기 전까지 같은 토큰이 계속 통과할 수 있습니다. 이때는 유출을 얼마나 빨리 발견하고 대응하느냐가 사용 가능 시간을 좌우합니다.
+
+Google ID token도 서버 간 인증에 쓰이는 토큰입니다. 아래는 두 구성에서 **발급 환경은 그대로이고, 요청에 쓰인 토큰 하나만 유출된 경우**를 비교한 것입니다.
+
+| 비교한 점                 | 고정 공유 토큰 — 별도 만료가 없는 구성 | Google 서비스 계정 ID token                              |
+| ------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| 언제까지 재사용할 수 있나 | 값을 교체하거나 수신을 차단하기 전까지 | 발급 시점부터 1시간의 수명이 정해져 있음                 |
+| 어디에서 사용할 수 있나   | 같은 비밀값을 받아주는 곳              | `aud`가 맞는지 검사하고 해당 계정을 허용하는 수신 서비스 |
+
+Google ID token은 Google이 서명한 JWT로, 만료 시각인 `exp`와 수신 대상인 `aud`가 담깁니다. 수신 서버가 이를 검사하면 토큰이 노출됐을 때 재사용할 수 있는 시간과 대상을 제한할 수 있습니다. 수명과 형식은 [Google의 서비스 계정 ID token 설명](https://docs.cloud.google.com/docs/authentication/token-types#service_account_id_tokens)을 참고했습니다. 실제 만료 검증에는 라이브러리의 시계 오차 허용도 적용됩니다.
+
+이 조건은 직접 만든 JWT에도 넣을 수 있습니다. 다만 호출하는 서버는 이미 Google Cloud의 서비스 계정으로 실행하고 있었습니다. 별도의 발급기와 서명 키 운영을 추가하지 않고 짧은 수명과 수신 대상 검증을 적용할 수 있어 Google ID token을 선택했습니다.
+
+다만 이번 구성의 ID token도 값을 가진 쪽이 제시해서 사용하는 [Bearer token](https://datatracker.ietf.org/doc/html/rfc6750#section-1.2)입니다. 유효한 원본이 유출되면 같은 서비스에 다시 보낼 수 있습니다. 서명과 audience 검증이 이 재사용을 막아주지는 않으며, 해당 서비스에서 실행할 수 있는 업무는 별도의 권한 검사에 달려 있습니다.
+
+## 호출하는 서버에서 토큰을 받아 붙였다
+
+적용할 때는 서버 요청과 브라우저 요청을 나눴습니다. 브라우저가 기존 로그인 토큰으로 직접 파일을 내려받는 흐름은 유지하고, 서버 요청에만 Google ID token을 붙였습니다. 서비스 계정 토큰은 브라우저에 전달하지 않습니다.
+
+호출하는 쪽에서는 Google 인증 라이브러리로 ID token 클라이언트를 만들었습니다. 인증 정보는 실행 환경에서 찾는 Application Default Credentials, 줄여서 ADC를 사용합니다. 코드에서 서비스 계정 키 파일을 직접 읽도록 만들지는 않았습니다. 발급 방법은 [Google의 ID token 발급 안내](https://docs.cloud.google.com/docs/authentication/get-id-token)를 참고했습니다.
+
+토큰을 발급받을 때는 audience를 지정합니다. HTTP 요청을 보내는 URL과는 용도가 달라서 두 값을 각각 설정했습니다. 호출 쪽에서 지정한 audience와 받는 쪽의 검증 설정은 같은 값으로 맞췄습니다.
+
+실제 구현에서 HTTP 클라이언트와 오류 처리를 덜어내면 다음 흐름입니다. 주소는 예시입니다.
+
+```typescript
+import { GoogleAuth } from 'google-auth-library'
+
+const auth = new GoogleAuth()
+const tokenClient = auth.getIdTokenClient('https://files.example.com')
+
+async function requestJob(payload: unknown) {
+  const client = await tokenClient
+  const headers = await client.getRequestHeaders()
+  const authorization = headers.get('authorization')
+  if (!authorization) throw new Error('ID token을 가져오지 못했습니다')
+
+  return fetch('https://files.example.com/jobs', {
+    method: 'POST',
+    headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    redirect: 'error',
+  })
+}
+```
+
+클라이언트는 재사용하고, 요청할 때 `getRequestHeaders()`로 인증 헤더를 받아 붙입니다. 이때 토큰이 없거나 만료가 가까워지면 라이브러리가 새 토큰을 받습니다. 별도로 Redis나 DB에 토큰을 저장하지 않았고, 반환된 헤더 중에서는 `Authorization`만 골라 보냈습니다.
+
+![서버 간 ID token 인증 흐름. 호출 서버가 audience를 지정해 Google에 ID token을 요청하고, Google이 서명한 토큰을 받는다. 이 토큰을 Authorization 헤더에 넣어 파일 처리 서비스에 보낸다. 수신 서비스는 서명, 발급자, audience, 만료와 허용한 서비스 계정을 확인한다.](/static/images/google-id-token-service-auth/request-flow.svg)
+
+## 받는 쪽에서는 토큰과 호출 계정을 함께 확인했다
+
+선택의 기준으로 삼은 만료와 수신 대상을 수신 애플리케이션의 검증 조건에 반영했습니다. [Google 인증 라이브러리](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)로 서명과 발급자(`iss`), audience(`aud`), 만료(`exp`)를 검증했습니다.
+
+그다음 이메일이 확인된 계정인지(`email_verified`), 계정 이메일이 허용 목록에 있는지도 검사했습니다. 다른 서비스 계정도 Google이 서명한 토큰을 받을 수 있고 audience도 발급 요청 때 지정할 수 있으므로, 우리 서비스를 호출해도 되는 계정인지는 따로 정해야 했습니다.
+
+브라우저 요청에는 기존 로그인과 사용자 권한 검사를 적용했습니다. 두 인증을 같은 애플리케이션에서 처리하되, ID token 검증에 실패한 요청을 사용자 인증으로 다시 시도하지 않도록 했습니다.
+
+## 오류에 토큰이 남지 않도록 호출 코드도 정리했다
+
+유출 가능성을 기준으로 인증을 골랐으니, 호출 과정에서 토큰이 남을 수 있는 곳도 살펴봤습니다. HTTP 클라이언트의 원본 오류에는 인증 헤더가 포함된 요청 설정이 들어갈 수 있었습니다.
+
+그래서 호출자에게는 필요한 오류 코드와 메시지만 담은 객체를 전달했습니다. 요청 실패 로그에는 경로와 상태, 오류 코드만 남기고, 인증 헤더를 붙인 요청의 자동 리다이렉트도 막았습니다.
+
+토큰을 가져오지 못하면 HTTP 요청을 보내지 않도록 했습니다. 수신 서비스가 ID token을 거부해 반환한 401이나 403은 서버 간 연동 실패인 502로 변환해, 사용자 로그인 문제와 구분했습니다.
+
+## 배포 후 확인한 동작과 토큰의 한계
+
+테스트에서는 다른 audience, 만료된 토큰, 허용하지 않은 계정, 변조된 서명을 거절하는지 확인했습니다. 호출 쪽에서는 토큰 재사용과 갱신, 발급 실패 시 요청 중단, 인증 오류를 502로 바꾸는 동작을 다뤘습니다.
+
+배포 후에는 서비스 계정의 ID token을 사용한 서버 간 호출과 기존 브라우저 다운로드가 모두 정상 동작하는 것을 확인했습니다.
+
+짧은 수명과 긴급 차단은 따로 생각해야 했습니다. [Google ID token은 개별 토큰을 발급 측에서 취소할 수 없습니다](https://docs.cloud.google.com/docs/authentication/token-types#identity_tokens). 만료 전에 사용을 막으려면 수신 측 허용 정책이나 네트워크 차단을 적용해야 하고, 그 변경이 실제 요청을 처리하는 서버들에 반영돼야 합니다.
+
+처음 비교한 것처럼 토큰 하나가 유출된 경우와 발급 환경까지 침해된 경우도 구분해야 합니다. 이 구현에서 ID token 하나만으로 새 토큰을 발급받을 수는 없지만, 실행 환경의 신원으로 계속 발급받을 수 있다면 짧은 만료만으로 해결되지 않습니다.
+
+이번에는 유출된 값이 계속 쓰이는 시간을 줄이는 쪽으로 인증을 골랐습니다. 그 기준을 실제 호출에 적용하면서, 받는 쪽의 검증 조건과 토큰이 오류에 섞여 나가는 지점도 함께 정리했습니다.
