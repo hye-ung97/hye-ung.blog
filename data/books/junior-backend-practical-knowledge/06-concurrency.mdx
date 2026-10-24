@@ -1,0 +1,557 @@
+---
+title: '동시성, 데이터가 꼬이기 전에 잡아야 한다'
+chapter: 6
+date: '2026-10-24'
+summary: '공유 데이터에서 발생하는 경쟁 상태와 프로세스·DB 수준의 잠금, 원자적 연산, 단일 스레드로 상태를 관리하는 방식을 정리한다.'
+images: ['/static/images/books/junior-backend-practical-knowledge/cover.jpg']
+draft: false
+---
+
+서버는 여러 클라이언트의 요청을 함께 처리한다. 요청 하나에 0.1초가 걸릴 때 100개를 순서대로 처리하면 10초가 걸린다. 한 번에 10개씩 처리할 수 있다고 가정하면 전체 시간은 1초로 줄어든다. 동시에 처리할 수 있어야 요청이 들어오는 속도를 따라갈 수 있다.
+
+그런데 여러 요청이 같은 데이터를 읽고 수정하면 실행 순서에 따라 결과가 달라질 수 있다. 카운터를 두 번 증가시켰는데 한 번만 증가하거나, 다른 고객의 결제 데이터를 덮어쓰는 식이다.
+
+## 동시 실행과 공유 데이터
+
+서버는 요청마다 스레드를 할당하거나 비동기·논블로킹 I/O를 사용해 동시 요청을 처리할 수 있다. 어느 쪽이든 같은 데이터에 여러 작업이 접근할 수 있다는 점을 고려해야 한다.
+
+### 카운터가 덜 증가하는 이유
+
+```java
+public class Increaser {
+    private int count = 0;
+
+    public void inc() {
+        count = count + 1;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+```
+
+`count = count + 1`은 값을 읽고, 읽은 값에 1을 더한 다음, 결과를 저장하는 연산이다. 소스 코드 한 줄이더라도 다른 스레드가 그 사이에 끼어들 수 있다.
+
+하나의 `Increaser` 객체를 100개 스레드가 공유하고 각 스레드가 100번씩 증가시키면 기대값은 10,000이다. 하지만 실행 순서에 따라 그보다 작은 값이 나올 수 있다.
+
+`count`가 5일 때 두 스레드가 모두 5를 읽었다고 해 보자. 각자 1을 더해 6을 저장하면 최종 값은 7이 아닌 6이다. 두 번 실행한 증가 중 하나가 결과에 반영되지 않는다.
+
+![두 스레드가 같은 카운터 값을 읽은 뒤 각각 1을 더해 저장해 증가 한 번이 사라지는 흐름.](/static/images/books/junior-backend-practical-knowledge/ch06/lost-update.svg)
+
+이처럼 공유 자원에 접근하는 순서에 따라 결과가 달라지는 상황을 <strong>경쟁 상태(race condition)</strong>라고 한다. 실행 순서가 매번 같지 않으므로 테스트에 통과했다가 운영에서만 문제가 생길 수 있고, 같은 조건으로 다시 실행해도 재현되지 않을 수 있다.
+
+### 요청 데이터를 객체 필드에 저장했을 때
+
+`PayService` 예제는 결제 ID인 `payId`를 객체의 필드에 보관한다. 이 객체가 싱글톤이라면 여러 요청이 같은 필드를 사용한다.
+
+```java
+public class PayService {
+    private Long payId;
+
+    public PayResp pay(PayRequest req) {
+        // 다른 처리 생략
+        this.payId = genPayId();
+        saveTemp(this.payId, req);
+        PayResp resp = sendPayData(this.payId, ...);
+        applyResponse(resp);
+        return resp;
+    }
+
+    private void applyResponse(PayResp resp) {
+        PayData payData = createPayDataFromResp(resp);
+        updatePayData(this.payId, payData);
+        // 다른 처리 생략
+    }
+}
+```
+
+`sendPayData()`의 나머지 인자는 `...`로 생략했다. 결제 요청을 보낼 때와 응답을 저장할 때 모두 공유 필드인 `this.payId`를 다시 읽는다.
+
+1. 요청 A가 결제 ID 1을 생성해 필드에 저장한다.
+2. A의 처리가 끝나기 전에 요청 B가 필드를 결제 ID 2로 바꾼다.
+3. A가 필드를 다시 읽어 결제 결과를 저장하면 ID 2의 데이터를 수정한다.
+
+![하나의 서비스 객체에 저장한 결제 ID를 요청 B가 바꾸면서 요청 A의 처리 결과도 B의 결제 데이터에 반영되는 흐름.](/static/images/books/junior-backend-practical-knowledge/ch06/shared-field.svg)
+
+공유된 것은 서비스 객체만이 아니다. 그 객체 안에 둔 요청별 데이터도 함께 공유된다. A의 결제 결과가 사라지고 B의 결제에 A의 응답이 반영될 수 있다.
+
+DB에서도 같은 문제가 생긴다. 관리 시스템과 주문 서비스가 같은 주문 상태를 읽은 뒤 각각 배송 시작과 주문 취소를 처리할 수 있다. 취소 상태를 저장한 뒤 관리 시스템이 배송 상태로 덮어쓰면, 고객은 취소했는데 배송이 시작된다.
+
+따라서 공유 메모리의 접근과 DB 데이터 변경을 각각 살펴야 한다. 프로세스 안에서 안전한 코드여도 다른 프로세스가 같은 DB 레코드를 수정할 수 있다.
+
+## 프로세스 안에서 동시 접근을 제어하기
+
+### 잠금과 임계 영역
+
+<strong>임계 영역(critical section)</strong>은 둘 이상의 스레드나 프로세스가 동시에 접근해서는 안 되는 공유 자원을 다루는 코드 영역이다. 잠금을 사용하면 그 영역에 들어갈 수 있는 스레드를 제한할 수 있다.
+
+일반적인 잠금의 흐름은 다음과 같다.
+
+1. 잠금을 획득한다.
+2. 공유 자원에 접근한다.
+3. 잠금을 해제한다.
+
+한 스레드가 잠금을 보유하고 있으면 같은 잠금을 구하려는 다른 스레드는 기다린다. 먼저 들어간 스레드가 잠금을 해제한 뒤 다음 스레드가 자원에 접근한다. 뮤텍스(mutex)는 이런 상호 배제(mutual exclusion)와 관련된 용어다.
+
+Java의 `ReentrantLock`을 사용한다면 공유 자원을 사용하는 코드를 `try-finally`로 감싸고 `finally`에서 잠금을 해제한다. `synchronized`는 블록을 벗어날 때 잠금을 자동으로 해제한다. 대기 시간 지정 같은 기능이 필요한지에 따라 잠금 구현을 고르고, 같은 자원을 보호할 때는 방식을 섞지 않는다.
+
+`UserSessions` 예제는 `HashMap`의 저장과 조회에 같은 잠금을 사용한다. 여러 스레드가 동시에 `put()`을 호출해 데이터가 누락되거나 잘못 저장되는 일을 막기 위해서다. 이때 보호되는 것은 잠금을 획득한 코드 구간이며, 같은 데이터를 다루는 다른 경로에서도 같은 규칙을 지켜야 한다.
+
+```java
+public class UserSessions {
+    private Lock lock = new ReentrantLock();
+    private Map<String, UserSession> sessions = new HashMap<>();
+
+    public void addUserSession(UserSession session) {
+        lock.lock();
+        try {
+            sessions.put(session.getSessionId(), session);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public UserSession getUserSession(String sessionId) {
+        lock.lock();
+        try {
+            return sessions.get(sessionId);
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+두 메서드가 같은 `lock` 객체를 사용하므로 저장과 조회가 동시에 실행되지 않는다. 잠금을 얻은 뒤 예외가 발생해도 `finally`에서 해제한다.
+
+### 세마포어와 읽기 쓰기 잠금
+
+잠금 외에도 허용할 접근 방식에 따라 다른 도구를 사용할 수 있다.
+
+| 도구           | 허용하는 접근              | 사용 예                                           |
+| -------------- | -------------------------- | ------------------------------------------------- |
+| 상호 배제 잠금 | 한 번에 한 스레드          | 공유 `HashMap` 보호                               |
+| 세마포어       | 정해진 수만큼 동시 실행    | 외부 서비스 동시 요청을 최대 5개로 제한           |
+| 읽기 쓰기 잠금 | 여러 읽기 또는 하나의 쓰기 | 변경 중인 데이터의 접근을 막으면서 동시 조회 허용 |
+
+![상호 배제 잠금은 한 작업, 세마포어는 허용 개수만큼의 작업, 읽기 쓰기 잠금은 여러 읽기 또는 하나의 쓰기를 허용한다.](/static/images/books/junior-backend-practical-knowledge/ch06/lock-tools.svg)
+
+세마포어는 <strong>퍼밋(permit)</strong>이라는 허용 개수를 관리한다. 실행 전에 퍼밋을 획득하면 남은 개수가 하나 줄고, 작업을 마친 뒤 반환하면 하나 늘어난다. 남은 퍼밋이 없으면 다른 작업이 반환할 때까지 기다린다. 동시 실행 수를 제한하는 도구이므로, 퍼밋이 5개인 세마포어로 공유 데이터의 단독 접근을 보장할 수는 없다.
+
+```java
+import java.util.concurrent.Semaphore;
+
+public class MyClient {
+    private Semaphore semaphore = new Semaphore(5);
+
+    public String getData() {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            String data = ...; // 외부 연동 코드 생략
+            return data;
+        } finally {
+            semaphore.release();
+        }
+    }
+}
+```
+
+외부 연동 구간에는 최대 5개 스레드가 들어갈 수 있다. 퍼밋 획득에 실패했다면 작업을 실행하지 않고, 획득한 경우에만 작업 후 `release()`로 반환한다.
+
+읽기 쓰기 잠금은 읽기끼리는 동시에 실행해도 되는 상황에 사용한다. 하나의 일반 잠금으로 `get()`과 `put()`을 모두 감싸면 조회끼리도 기다려야 한다. 읽기와 쓰기를 나누면 다음 규칙을 적용할 수 있다.
+
+- 읽기 잠금은 여러 스레드가 함께 획득할 수 있다.
+- 쓰기 잠금은 한 스레드만 획득할 수 있다.
+- 쓰기 잠금을 보유하는 동안 다른 읽기와 쓰기는 기다린다.
+- 읽기 잠금을 보유한 스레드가 있으면 쓰기는 기다린다.
+
+조회가 많은 자료구조라면 읽기까지 하나씩 처리하는 제한을 줄일 수 있다.
+
+```java
+public class UserSessionsRW {
+    private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private Lock writeLock = lock.writeLock();
+    private Lock readLock = lock.readLock();
+    private Map<String, UserSession> sessions = new HashMap<>();
+
+    public void addUserSession(UserSession session) {
+        writeLock.lock();
+        try {
+            sessions.put(session.getSessionId(), session);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public UserSession getUserSession(String sessionId) {
+        readLock.lock();
+        try {
+            return sessions.get(sessionId);
+        } finally {
+            readLock.unlock();
+        }
+    }
+}
+```
+
+두 잠금은 같은 `ReadWriteLock`에서 얻는다. 서로 무관한 잠금 두 개를 만들어 읽기와 쓰기를 각각 감싸는 방식과는 다르다.
+
+### 원자적 타입
+
+숫자 하나를 증가시키기 위해 잠금을 획득하고 해제하는 대신 원자적 타입을 사용할 수도 있다. Java의 `AtomicInteger`, `AtomicLong`, `AtomicBoolean` 등이 그 예다.
+
+카운터에는 `count = count + 1` 대신 `AtomicInteger`의 `incrementAndGet()`을 사용할 수 있다. 여러 스레드가 동시에 호출해도 각각의 증가가 반영된다.
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Increaser {
+    private AtomicInteger count = new AtomicInteger(0);
+
+    public void inc() {
+        count.incrementAndGet();
+    }
+
+    public int getCount() {
+        return count.get();
+    }
+}
+```
+
+<strong>CAS(Compare And Swap)</strong>는 예상한 값과 현재 값이 같은지 비교한 뒤 값을 변경하는 연산이다. 직접 잠금을 작성하지 않고도 해당 타입이 제공하는 연산으로 공유 값을 변경할 수 있다.
+
+### 동시성을 지원하는 컬렉션
+
+일반 `HashMap`이나 `HashSet`을 여러 스레드가 함께 변경하면 데이터가 손상될 수 있다. 동기화된 컬렉션으로 감싸거나 동시성 지원 컬렉션을 사용할 수 있다.
+
+| 방식                                             | 특징                                                              |
+| ------------------------------------------------ | ----------------------------------------------------------------- |
+| `Collections.synchronizedMap()` 등으로 감싸기    | 조회와 변경 메서드를 동기화해 접근을 제어한다.                    |
+| `ConcurrentHashMap` 같은 동시성 지원 컬렉션 사용 | 자료구조에 맞게 동시 접근을 지원하며, 변경 시 잠금 범위를 줄인다. |
+
+기존 `HashMap`을 동기화된 맵으로 감쌀 수 있다.
+
+```java
+Map<String, String> map = new HashMap<>();
+Map<String, String> syncMap = Collections.synchronizedMap(map);
+syncMap.put("key1", "value1");
+```
+
+동시성 지원 컬렉션을 직접 생성할 수도 있다.
+
+```java
+ConcurrentMap<String, String> map = new ConcurrentHashMap<>();
+map.put("key1", "value1");
+```
+
+변경하지 않는 값을 공유하는 방법도 있다. 불변 값은 공유한 뒤 값 자체를 수정하지 않으므로 여러 스레드가 함께 읽을 수 있다. 변경이 필요하면 기존 값을 수정하는 대신 새 값을 만든다. 변경 시 내부 데이터를 복사하는 컬렉션으로는 `CopyOnWriteArrayList`가 있다.
+
+## DB에서 같은 데이터를 변경할 때
+
+트랜잭션은 여러 조회와 쓰기를 하나의 작업 단위로 묶는다. 포함된 쓰기를 모두 커밋하거나 모두 롤백할 수 있지만, 트랜잭션으로 묶었다는 이유만으로 동시에 같은 데이터를 바꾸는 문제가 모두 해결되지는 않는다.
+
+배송 시작과 주문 취소처럼 같은 상태를 확인하고 변경하는 기능에는 서로의 변경을 어떻게 조정할지도 정해야 한다. 선점 잠금과 비선점 잠금이 이를 처리하는 방법이다.
+
+### 선점 잠금: 먼저 잠근 뒤 확인하고 수정한다
+
+선점 잠금은 데이터를 먼저 사용하는 트랜잭션이 잠금을 획득하는 방식이다. 비관적 잠금이라고도 부른다. MySQL이나 Oracle에서는 다음과 같은 형태로 조회하면서 잠금을 구할 수 있다.
+
+```sql
+SELECT *
+FROM orders
+WHERE id = ?
+FOR UPDATE;
+```
+
+잠금은 트랜잭션이 커밋되거나 롤백될 때 반환된다. 같은 레코드에 대해 충돌하는 잠금을 구하려는 다른 트랜잭션은 그때까지 기다린다. 이후 잠금을 얻은 트랜잭션은 앞선 변경을 확인하고 처리를 이어간다.
+
+![배송 시작 트랜잭션이 주문을 잠그고 상태를 바꿔 커밋한 뒤, 기다리던 주문 취소 트랜잭션이 배송 상태를 확인해 취소를 거절하는 흐름.](/static/images/books/junior-backend-practical-knowledge/ch06/pessimistic-lock.svg)
+
+배송 시작이 먼저 잠금을 획득해 배송 중으로 바꿨다면, 뒤이어 잠금을 얻은 주문 취소는 배송 중인 상태를 확인하고 실패한다. 반대로 취소가 먼저 처리됐다면 배송 시작이 취소 상태를 확인하고 실패한다. 두 기능 모두 잠금을 획득한 뒤 상태를 확인해야 이 흐름이 성립한다.
+
+### 비선점 잠금: 수정할 때 버전을 비교한다
+
+비선점 잠금은 조회부터 수정까지 명시적인 선점 잠금을 유지하는 대신, 수정할 때 조회 당시의 값이 그대로인지 검사한다. 낙관적 잠금이라고도 부른다. 정수형 버전 칼럼으로 구현할 수 있다.
+
+1. 데이터를 조회할 때 `version`도 함께 읽는다.
+2. 업무 로직을 수행한다.
+3. 조회한 버전이 현재 버전과 같을 때만 수정하고, 버전을 1 증가시킨다.
+4. 수정된 행 수를 확인한다. 0건이면 변경에 실패한 것으로 처리하고 트랜잭션을 롤백한다.
+
+```sql
+UPDATE orders
+SET state = ?, version = version + 1
+WHERE id = ? AND version = ?;
+```
+
+두 트랜잭션이 모두 버전 1을 읽었어도 먼저 수정한 쪽이 버전을 2로 바꾸면, 나중에 실행한 `WHERE version = 1`은 일치하지 않는다. 변경에 실패한 쪽이 앞선 값을 덮어쓰는 것을 막는다.
+
+배송 상태를 변경하는 코드는 다음과 같다. `getOrder()`는 주문 정보와 `version`을 함께 조회한다.
+
+```java
+@Transactional
+public void startShipping(String orderId) {
+    OrderData order = getOrder(orderId);
+    // order 유효성 검사 생략
+    order.startShipping();
+
+    int updatedCount = jdbcTemplate.update(
+        "update orders set version=version+1, state = 'SHIPPING' " +
+        "where id = ? and version=?",
+        order.getId(), order.getVersion()
+    );
+
+    if (updatedCount == 0) {
+        throw new RuntimeException("비선점 잠금 오류 발생 및 트랜잭션 롤백");
+    }
+}
+```
+
+변경한 행이 0개면 예외를 던져 트랜잭션을 롤백한다. SQL을 실행했다는 사실만으로 성공으로 처리하지 않고, 변경 행 수까지 확인한다.
+
+![두 트랜잭션이 같은 버전을 읽고 변경을 시도할 때, 먼저 갱신한 트랜잭션만 성공하고 뒤의 트랜잭션은 버전 불일치로 실패하는 흐름.](/static/images/books/junior-backend-practical-knowledge/ch06/optimistic-lock.svg)
+
+| 구분        | 충돌을 다루는 방식                          | 고려할 점                                   |
+| ----------- | ------------------------------------------- | ------------------------------------------- |
+| 선점 잠금   | 먼저 잠그고 후속 접근을 기다리게 한다.      | 잠금 획득을 기다리는 시간이 늘어날 수 있다. |
+| 비선점 잠금 | 수정 시 버전을 비교해 앞선 변경을 확인한다. | 충돌하면 변경 실패를 처리해야 한다.         |
+
+DB의 선점 잠금으로 여러 프로세스가 같은 DB를 통해 접근을 조정할 수도 있다. 트래픽과 운영 환경에 따라 Redis 기반 분산 잠금도 검토할 수 있다.
+
+### 외부 연동이 트랜잭션 안에 있다면
+
+주문 취소 도중 외부 PG 시스템에서 결제를 취소한 다음, 낙관적 잠금의 버전 검사에서 실패할 수 있다. DB는 롤백되지만 외부에서 끝난 결제 취소까지 되돌아가지는 않는다.
+
+이런 흐름에서는 선점 잠금을 고려할 수 있다. 먼저 잠금을 획득해 주문 상태를 확인한 뒤 외부 연동을 수행하면, 그 사이 다른 트랜잭션이 같은 주문 상태를 먼저 바꾸는 일을 제한할 수 있다. 외부 연동을 트랜잭션 아웃박스 패턴으로 분리하는 방법도 있다.
+
+### 증분 쿼리로 갱신 누락 줄이기
+
+참여자 수를 읽고 애플리케이션에서 1을 더한 뒤 저장하면 카운터 예제와 같은 문제가 생긴다. 두 요청이 모두 10을 읽고 11을 저장하면 두 명이 참여했는데 한 명만 늘어난다.
+
+이때 별도로 값을 읽어 계산하는 대신 DB에서 현재 값을 증가시킬 수 있다.
+
+```sql
+UPDATE subject
+SET join_count = join_count + 1
+WHERE id = ?;
+```
+
+현재 값에 대한 증가를 DB의 한 연산으로 처리하는 방식이다. 사용 중인 DB에서 해당 증분 연산을 원자적으로 처리하는지 확인해야 한다.
+
+## 잠금을 사용할 때 확인할 것
+
+### 획득한 잠금과 퍼밋 반환하기
+
+잠금을 해제하지 않으면 같은 잠금을 구하는 스레드가 계속 기다린다. 세마포어도 획득한 퍼밋을 반환하지 않으면 실행 가능한 개수가 줄어들다가 새 작업이 들어오지 못한다.
+
+예외가 발생해도 반환하도록 `finally`를 사용한다. 잠금 획득에 성공한 뒤에만 보호할 코드를 실행하고, 그 잠금을 해제해야 한다.
+
+### 기다리는 시간 제한하기
+
+잠금을 사용하는 코드의 실행 시간이 짧더라도 대기자가 많으면 뒤쪽 요청은 오래 기다린다. 임계 영역 하나에 0.5초가 걸리고 1,000개 스레드가 동시에 대기하면 마지막 스레드는 실행 전까지 약 499.5초를 기다릴 수 있다.
+
+`tryLock()`을 사용하면 즉시 획득 여부를 확인하거나 지정한 시간까지만 기다릴 수 있다. 획득하지 못한 경우에는 공유 자원에 접근하지 않고 실패를 처리한다. 기다리는 상한과 함께 실패했을 때 반환할 결과도 정해야 한다.
+
+```java
+boolean acquired = lock.tryLock(5, TimeUnit.SECONDS);
+if (!acquired) {
+    throw new RuntimeException("Failed to acquire lock");
+}
+
+try {
+    // 자원 접근 코드 실행
+} finally {
+    lock.unlock();
+}
+```
+
+최대 5초 동안 획득을 시도하고 실패하면 예외를 던진다. 대기 없이 성공 여부만 확인하려면 `lock.tryLock()`을 사용한다. 제한 시간을 받는 `tryLock()`은 `InterruptedException`을 처리하거나 호출한 쪽으로 전달해야 한다.
+
+### 교착 상태 피하기
+
+<strong>교착 상태(deadlock)</strong>는 여러 작업이 서로가 보유한 자원의 잠금을 기다리며 진행하지 못하는 상태다.
+
+- 스레드 1은 자원 A의 잠금을 가진 채 B를 기다린다.
+- 스레드 2는 자원 B의 잠금을 가진 채 A를 기다린다.
+
+![두 스레드가 A와 B를 반대 순서로 잠가 서로 기다리는 경우와, 모두 A 다음 B 순서로 잠금을 얻어 순환 대기를 피하는 경우.](/static/images/books/junior-backend-practical-knowledge/ch06/deadlock.svg)
+
+잠금 대기 시간을 제한하거나, 여러 자원을 잠글 때 획득 순서를 맞추면 교착 상태를 줄일 수 있다. 제한 시간을 넘겨 획득을 포기할 때는 이미 얻은 잠금도 해제해야 다른 작업이 진행할 수 있다. 모든 작업이 A 다음 B 순서로 잠그면 한쪽은 A를 얻기 전부터 기다리므로 서로 B와 A를 나눠 가진 채 대기하는 상황을 피할 수 있다. 여러 레코드를 잠근다면 ID 정렬 순서처럼 일관된 기준을 사용할 수 있다.
+
+라이브락과 기아도 교착 상태와 구분해야 한다.
+
+| 상태               | 진행하지 못하는 이유                                     | 대응 방법                           |
+| ------------------ | -------------------------------------------------------- | ----------------------------------- |
+| 교착 상태          | 서로가 가진 잠금을 기다린다.                             | 대기 시간 제한, 잠금 획득 순서 통일 |
+| 라이브락(livelock) | 서로 양보하는 동작 등을 반복하지만 작업이 끝나지 않는다. | 우선순위, 중재자, 무작위 대기       |
+| 기아(starvation)   | 특정 작업이 계속 자원을 할당받지 못한다.                 | 우선순위 조정, 자원 독점 시간 제한  |
+
+## 한 스레드가 상태를 관리하기
+
+여러 스레드가 같은 상태를 직접 수정하는 대신, 한 스레드만 그 상태에 접근하도록 구조를 바꿀 수도 있다. 다른 스레드는 할 일을 큐에 넣고, 상태를 관리하는 스레드가 큐에서 작업을 하나씩 꺼내 실행한다.
+
+![여러 요청 처리 스레드가 작업 큐에 요청을 넣고, 상태 관리 스레드 하나만 큐의 작업을 순서대로 실행하며 공유 상태를 수정하는 구조.](/static/images/books/junior-backend-practical-knowledge/ch06/single-owner.svg)
+
+```java
+while (running) {
+    Job job = jobQueue.poll(1, TimeUnit.SECONDS);
+    if (job == null) {
+        continue;
+    }
+
+    switch (job.getType()) {
+        case INC:
+            obj.modifyState();
+            break;
+        // 다른 작업 생략
+    }
+}
+```
+
+`obj.modifyState()`는 상태 관리 스레드만 호출한다. 다른 스레드는 `obj`를 직접 수정하지 않고 큐에 작업을 넣는다.
+
+이 구조에서는 상태 관리 스레드가 데이터 변경을 전담한다. 다른 스레드는 상태를 직접 수정하지 않는다. 스레드 사이에 데이터를 전달해야 한다면 복제본이나 불변 값을 전달해 다른 쪽에서 원본을 바꾸지 못하도록 할 수 있다. Go의 채널을 통한 데이터 전달도 이런 방식에 해당한다.
+
+단일 스레드로 상태를 관리하면 해당 상태에 여러 스레드가 직접 접근하는 문제를 줄일 수 있지만, 작업 큐와 전달 구조를 설계해야 한다. 비동기·논블로킹 I/O처럼 블로킹을 줄여야 하는 처리에서 검토할 수 있는 방식이다.
+
+성능은 작업 수와 임계 영역의 실행 시간에 따라 달라진다. 접근하는 스레드가 적고 임계 영역이 짧다면 잠금 방식이 더 나을 수 있고, 작업이 많고 처리 시간이 길다면 큐를 이용하는 방식이 비슷하거나 더 나을 수도 있다.
+
+## 보충 내용 — Java와 Node.js에서의 동시성
+
+추가로 내가 궁금했던 내용을 정리했다.
+
+### Java와 Node.js는 동시 요청을 어떻게 처리할까?
+
+스레드는 프로그램 안에서 코드를 실행하는 흐름이다. Java 프로그램의 `main()`도 한 스레드에서 실행된다. 여러 작업이 진행 중인 상태를 **동시성**, 여러 작업을 같은 순간에 실행하는 것을 **병렬성**이라고 구분할 수 있다. Java에는 OS 스레드와 보통 1:1로 대응하는 플랫폼 스레드와, Java 런타임이 스케줄링하는 가상 스레드가 있다. 어느 쪽이든 공유 객체에 접근한다면 동시성 문제를 고려해야 한다. [Java `Thread` 문서](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html)
+
+Node.js에도 스레드가 있다. 일반적인 Node.js 서버에서는 하나의 JavaScript 실행 스레드가 요청 처리 함수와 콜백을 실행하고, 이벤트 루프가 실행할 일을 조정한다. 요청 A가 DB 응답을 기다리는 동안 요청 B의 코드를 실행하고, 응답이 오면 A의 나머지 코드를 이어갈 수 있다. Java의 스레드와 Node.js의 이벤트 루프는 같은 개념이 아니다. [Node.js의 동시성 모델 비교](https://nodejs.org/en/learn/concurrency/comparing-nodejs-concurrency-models)
+
+| 실행 방식                               | Java                                  | Node.js                              |
+| --------------------------------------- | ------------------------------------- | ------------------------------------ |
+| 요청 처리 코드를 실행                   | 스레드에서 실행                       | 보통 메인 JavaScript 스레드에서 실행 |
+| I/O 응답을 기다리는 동안 다른 요청 처리 | 여러 스레드 또는 비동기 I/O 모델 사용 | 비동기 I/O와 이벤트 루프로 처리      |
+| CPU 계산을 여러 실행 흐름에 분산        | 여러 스레드 사용                      | `worker_threads` 등 사용             |
+
+Java 서버도 비동기 I/O 모델을 사용할 수 있다. 여기서는 다중 스레드로 요청을 처리하는 Java 서버와 일반적인 Node.js 서버를 비교한다.
+
+Node.js의 네트워크 I/O는 OS의 비동기 처리 기능을 활용하고, 파일 I/O나 일부 DNS·암호화 작업은 libuv 워커 풀을 이용한다. 모든 I/O를 하나의 워커가 대신 실행하는 구조는 아니다. [Node.js의 이벤트 루프와 워커 풀](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop)
+
+`Promise`를 만들거나 함수를 `async`로 선언해도 동기 CPU 계산이 별도 스레드로 옮겨지지는 않는다. 메인 스레드에서 오래 계산하면 다른 요청의 JavaScript 코드도 기다린다. CPU 작업은 `worker_threads`로 분리할 수 있고, 여러 프로세스를 띄우는 `cluster` 등으로 요청을 분산할 수도 있다. [Node.js `worker_threads`](https://nodejs.org/api/worker_threads.html), [Node.js `cluster`](https://nodejs.org/api/cluster.html)
+
+### 싱글 스레드인 Node.js에서도 공유 상태가 섞일까?
+
+같은 이벤트 루프 안에서는 현재 실행 중인 동기 구간을 다른 요청의 JavaScript 코드가 가로채지 않는다. 하지만 요청 하나의 전체 처리가 하나의 동기 구간인 것은 아니다. `await`로 중단되면 다른 요청이 실행될 수 있으므로, 요청 사이에 공유한 가변 상태가 있다면 경쟁 상태가 생길 수 있다. [Node.js의 이벤트 루프와 워커 풀](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop)
+
+Spring의 싱글톤 빈은 컨테이너 안에서 해당 빈 정의에 대해 하나의 인스턴스를 공유한다는 뜻이다. 스레드 안전성까지 보장하지는 않는다. Node.js에서도 CommonJS 모듈을 같은 파일로 해석해 `require()`하면 캐시된 객체를 공유할 수 있다. 어느 쪽이든 요청별 데이터를 공유 객체의 필드에 저장하면 다른 요청의 값으로 덮일 수 있다. [Spring 빈의 범위](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html), [Node.js 모듈 캐싱](https://nodejs.org/api/modules.html#caching)
+
+```js
+const service = {
+  payId: null,
+
+  async pay(id) {
+    this.payId = id;
+    await Promise.resolve();
+    return this.payId;
+  },
+};
+
+console.log(await Promise.all([service.pay(1), service.pay(2)]));
+// [2, 2]
+```
+
+첫 번째 호출이 1을 저장하고 `await`에서 중단된 사이, 두 번째 호출이 공유 필드를 2로 바꾼다. 첫 번째 호출이 이어질 때 읽는 값도 2다. 이미 이행된 Promise를 `await`해도 이어지는 코드는 나중에 실행된다.
+
+요청마다 필요한 값은 그 호출의 매개변수나 지역 변수로 전달하면 이 공유 필드 문제를 피할 수 있다.
+
+```js
+const service = {
+  async pay(id) {
+    const payId = id;
+    await Promise.resolve();
+    return payId;
+  },
+};
+
+console.log(await Promise.all([service.pay(1), service.pay(2)]));
+// [1, 2]
+```
+
+`const`는 변수의 재할당을 막을 뿐 객체 전체를 불변으로 만들지는 않는다. 지역 변수로 참조하는 대상이 다른 요청과 공유하는 가변 객체라면 그 객체에 대한 보호는 여전히 필요하다.
+
+같은 이벤트 루프의 일반 메모리 숫자를 `count += 1`처럼 하나의 동기 구간에서 바꾸는 경우와, DB 조회·수정처럼 `await`를 사이에 둔 작업을 구분해야 한다. 후자는 비동기 큐나 뮤텍스로 작업 전체를 직렬화하거나 DB의 동시성 제어 기능을 사용해야 할 수 있다.
+
+Node.js를 여러 프로세스로 실행하면 각 프로세스의 일반 JavaScript 객체는 별개지만 같은 DB 데이터를 함께 변경할 수 있다. `worker_threads`에서 `SharedArrayBuffer`로 메모리를 공유하는 경우에도 별도의 동기화가 필요하다. 한 서버의 JavaScript 스레드 수만으로 공유 자원의 동시 접근 여부를 판단할 수는 없다. [Node.js `cluster`](https://nodejs.org/api/cluster.html), [Node.js `worker_threads`](https://nodejs.org/api/worker_threads.html)
+
+### 임계 영역은 어디까지일까?
+
+공유 자원에 대한 접근 중에서, 다른 작업의 충돌하는 접근이 끼어들면 안 되는 코드 구간이다. 락을 얻어 보호해야 하는 작업 범위를 가리킨다. Java의 락은 이 공유 자원에 대한 접근을 제어하는 수단이다. [Java `Lock` 문서](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html)
+
+예를 들어 재고가 1개 남았을 때 주문을 받는 과정은 다음과 같다.
+
+```text
+재고 읽기 → 1개 이상인지 확인 → 재고 1개 차감
+```
+
+검사와 차감이 떨어져 있으면 두 요청이 모두 재고 1개를 보고 주문을 허용할 수 있다. 그래서 보호할 범위에 읽기와 조건 검사를 포함해야 한다. 마지막 대입 한 줄만 잠그면 이미 오래된 값을 바탕으로 판단했을 수 있다.
+
+DB에서는 이 판단과 변경을 한 조건부 쿼리로 표현할 수도 있다.
+
+```sql
+UPDATE inventory
+SET stock = stock - 1
+WHERE id = 1 AND stock > 0;
+```
+
+변경된 행이 1개면 차감 성공, 0개면 재고 부족 또는 대상 부재로 처리한다. 이 예시는 PostgreSQL의 Read Committed에서 같은 행에 대한 `UPDATE`가 충돌할 때 최신 행을 대상으로 조건을 다시 평가하는 동작을 전제로 한다. 주문 생성까지 함께 성공해야 한다면 해당 작업도 같은 트랜잭션으로 묶어야 한다. [PostgreSQL Read Committed](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED)
+
+### 트랜잭션과 락의 범위는 어떻게 정할까?
+
+트랜잭션은 **함께 성공하거나 함께 취소되어야 하는 DB 작업의 범위**, 락은 **다른 작업의 충돌하는 접근을 제한하는 대상과 기간**을 정한다. 트랜잭션에도 격리 수준에 따른 동시성 제어가 있으므로, 트랜잭션에 동시성 제어 기능이 없다고 이해하면 안 된다. 다만 트랜잭션으로 묶었다는 이유만으로 모든 읽기·판단·수정 과정의 충돌이 해결되지는 않는다. 사용하는 DB와 격리 수준, 쿼리 방식을 함께 봐야 한다. [PostgreSQL 트랜잭션 격리](https://www.postgresql.org/docs/current/transaction-iso.html)
+
+락을 트랜잭션 안에 둘지 밖에 둘지는 **어떤 락으로 무엇을 보호하려는지**에 따라 달라진다.
+
+| 락 종류                  | 보호하는 범위                                | 일반적인 배치                                                                                       |
+| ------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| DB 행 잠금               | DB의 특정 행에 대한 충돌하는 변경·잠금       | 트랜잭션 시작 → 잠금 조회 → 검사·변경 → 커밋/롤백                                                   |
+| JVM의 `ReentrantLock` 등 | 같은 락 객체를 사용하는 스레드의 접근        | 메모리 작업이면 그 임계 영역만 감싼다. DB 변경의 직렬화에 사용한다면 실제 트랜잭션 종료까지 감싼다. |
+| 분산 락                  | 같은 잠금 규칙을 따르는 여러 프로세스의 작업 | DB 변경의 직렬화에 사용한다면 락 획득 → 트랜잭션 수행·종료 → 락 해제                                |
+
+**DB 행 잠금**은 트랜잭션 안에서 얻는다. 예를 들어 주문 상태를 읽고 배송 가능 여부를 판단한 뒤 바꾼다면 다음과 같다.
+
+```sql
+BEGIN;
+
+SELECT state FROM orders WHERE id = 1 FOR UPDATE;
+-- 잠금을 얻은 뒤 읽은 상태로 배송 가능 여부를 검사한다.
+UPDATE orders SET state = 'SHIPPING' WHERE id = 1;
+
+COMMIT;
+```
+
+다른 트랜잭션이 같은 행에 충돌하는 잠금을 요청하거나 변경하려 하면 기다리게 된다. 행 잠금은 보통 커밋이나 롤백 때 DB가 해제한다. `FOR UPDATE` 조회만 별도 트랜잭션에서 끝내고 나중에 수정하면, 조회와 수정 사이를 보호하지 못한다. 또한 행 잠금이 있다고 일반 `SELECT`까지 모두 막히는 것은 아니다. [PostgreSQL 명시적 잠금](https://www.postgresql.org/docs/current/explicit-locking.html), [MySQL InnoDB 잠금 읽기](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)
+
+**애플리케이션 락**으로 DB 작업의 순서를 보장하려면, 다음 작업이 들어오기 전에 이전 작업이 DB에 반영되어 있어야 한다.
+
+```text
+락 획득
+  트랜잭션 시작
+    조회 → 상태 검사 → 변경
+  실제 커밋 또는 롤백 완료
+락 해제
+```
+
+이때 주의할 부분이 Spring의 `@Transactional`이다. 기본 프록시 방식에서는 트랜잭션 처리가 메서드 호출을 감싼다. 트랜잭션 메서드 안의 `finally`에서 애플리케이션 락을 해제하면, 메서드가 반환되고 프록시가 커밋하기 전에 락이 풀릴 수 있다. 따라서 메서드 본문이 끝나는 시점과 실제 커밋 시점을 구분해야 한다. 위 순서를 구현하는 방법으로는 락을 관리하는 바깥 호출과 트랜잭션을 수행하는 별도 빈의 호출을 나누거나, 락 안에서 프로그램 방식으로 트랜잭션을 실행하는 방식이 있다. [Spring 선언적 트랜잭션의 동작](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html)
+
+바깥에 이미 시작된 트랜잭션에 참여하는 경우에는 안쪽 메서드가 반환되어도 전체 트랜잭션이 커밋되지 않을 수 있다. 같은 객체 안에서 `@Transactional` 메서드를 직접 호출하는 경우도 기본 프록시 방식으로 새 트랜잭션 경계가 만들어지지 않는다. 실제 경계와 전파 설정을 확인해야 한다. [Spring 트랜잭션 전파](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html), [Spring `@Transactional` 사용](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html)
+
+JVM 락은 같은 프로세스의 같은 락 객체를 사용하는 코드만 조정한다. 서버가 여러 대라면 DB 행 잠금이나 분산 락 등 서버 간에 효력이 있는 수단을 검토해야 한다. 분산 락도 유효 시간이 끝나면 다른 작업이 진입할 수 있으므로, 커밋까지 잠금이 유지되는지와 잠금 소유권을 잃었을 때의 처리를 설계해야 한다. [Java `Lock`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/locks/Lock.html), [Redis 분산 락](https://redis.io/docs/latest/develop/clients/patterns/distributed-locks/)
+
+잠금 범위는 상태를 읽고 판단해서 변경하는 데 필요한 부분을 포함하되, 관계없는 계산까지 길게 감싸지 않는다. 외부 결제 API를 DB 트랜잭션 안에서 호출하더라도 그 API의 성공이 DB 롤백과 함께 취소되는 것은 아니다. 외부 API와 DB의 상태가 어긋날 때의 처리 방법도 별도로 정해야 한다.
+
+**낙관적 락의 '잠금을 사용하지 않는다'는 표현도 범위를 구분해야 한다.** 읽을 때부터 명시적인 선점 잠금을 잡지 않고 버전 조건으로 충돌을 확인한다는 의미다. 실제 `UPDATE` 실행에서는 DB 내부의 물리 잠금으로 기다릴 수 있다. PostgreSQL의 Read Committed에서는 다른 트랜잭션의 수정을 기다린 뒤 `WHERE` 조건을 다시 평가한다. 따라서 `WHERE version = ?` 방식에 잠금 대기가 전혀 없다고 단정할 수 없다. [PostgreSQL Read Committed의 UPDATE 처리](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED)
