@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="470" viewBox="0 0 1000 470" role="img" aria-labelledby="title desc">
+<title id="title">같은 초의 세 번째 요청은 API로 보내지 않는다</title><desc id="desc">초당 두 요청을 허용한다. 요청 1과 2는 API로 전달하고 요청 3에는 429를 반환한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="468" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">같은 초의 세 번째 요청은 API로 보내지 않는다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">한도: 초당 2회 · 세 요청은 같은 초에 도착</text>
+<rect x="40" y="163" width="200" height="180" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="140.0" y="261.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트</text>
+<rect x="385" y="140" width="230" height="225" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="500.0" y="260.5" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">제한 미들웨어</text>
+<rect x="760" y="163" width="200" height="180" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="860.0" y="261.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">API 서버</text>
+<path d="M240 185 H385" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<path d="M615 185 H760" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+<text x="310" y="171" font-size="20" font-weight="500" fill="#315eb8" text-anchor="middle">요청 1</text>
+<text x="687" y="171" font-size="20" font-weight="600" fill="#24775c" text-anchor="middle">허용</text>
+<path d="M240 250 H385" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<path d="M615 250 H760" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+<text x="310" y="236" font-size="20" font-weight="500" fill="#315eb8" text-anchor="middle">요청 2</text>
+<text x="687" y="236" font-size="20" font-weight="600" fill="#24775c" text-anchor="middle">허용</text>
+<path d="M240 315 H385" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#red)"/>
+<text x="310" y="301" font-size="20" font-weight="500" fill="#b53d49" text-anchor="middle">요청 3</text>
+<text x="690" y="322" font-size="22" font-weight="650" fill="#b53d49" text-anchor="middle">차단</text>
+<path d="M650 308 L667 325 M667 308 L650 325" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M500 365 V413 H140 V343" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#red)"/>
+<text x="495" y="449" font-size="22" font-weight="650" fill="#b53d49" text-anchor="middle">429 Too Many Requests를 클라이언트로 반환</text>
+</g></svg>

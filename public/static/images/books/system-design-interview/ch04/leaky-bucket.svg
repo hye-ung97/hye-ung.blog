@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" role="img" aria-labelledby="title desc">
+<title id="title">누출 버킷은 큐의 빈자리부터 확인한다</title><desc id="desc">입력 요청 5개 중 3개는 FIFO 큐를 거쳐 일정한 속도로 전달하고, 큐가 가득 찼을 때 도착한 2개는 버린다. 이 개수는 요청 묶음 예시이며 큐 용량이나 초당 처리율을 뜻하지 않는다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="598" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">누출 버킷은 큐의 빈자리부터 확인한다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">처리 순서: 큐 용량 확인 → 큐에 추가 → 일정한 속도로 처리</text>
+<text x="36" y="120" font-size="21" font-weight="600" fill="#61718a" text-anchor="start">요청 묶음 예: 입력 5개 → 전달 3개 + 버림 2개</text>
+<rect x="35" y="230" width="150" height="112" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="110" y="265" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">입력 5개</text>
+<rect x="54" y="301" width="16" height="18" rx="3" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="78" y="301" width="16" height="18" rx="3" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="102" y="301" width="16" height="18" rx="3" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="126" y="301" width="16" height="18" rx="3" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="150" y="301" width="16" height="18" rx="3" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<path d="M345 216.0 L465.0 285 L345 354.0 L225.0 285 Z" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="345" y="293" font-size="22" font-weight="650" fill="#315eb8" text-anchor="middle">큐가 가득 찼는가?</text>
+<rect x="560" y="235" width="210" height="100" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="665.0" y="285.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">FIFO 큐</text>
+<text x="665.0" y="313.0" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">빈자리에 요청 추가</text>
+<rect x="840" y="230" width="125" height="112" rx="12" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<text x="902.5" y="265" font-size="22" font-weight="650" fill="#24775c" text-anchor="middle">전달 3개</text>
+<rect x="868.5" y="301" width="16" height="18" rx="3" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<rect x="894.5" y="301" width="16" height="18" rx="3" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<rect x="920.5" y="301" width="16" height="18" rx="3" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<path d="M185 285 H225" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M465 285 H560" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<text x="510" y="264" font-size="20" font-weight="650" fill="#315eb8" text-anchor="middle">아니오</text>
+<path d="M770 285 H840" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+<text x="805" y="206" font-size="20" font-weight="600" fill="#24775c" text-anchor="middle">고정 속도</text>
+<path d="M345 354 V435" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#red)"/>
+<text x="388" y="395" font-size="21" font-weight="650" fill="#b53d49" text-anchor="start">예</text>
+<rect x="235" y="435" width="220" height="112" rx="12" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="345" y="477" font-size="23" font-weight="650" fill="#b53d49" text-anchor="middle">버림 2개</text>
+<rect x="313" y="503" width="24" height="24" rx="4" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<rect x="353" y="503" width="24" height="24" rx="4" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="500" y="578" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">개수는 요청 묶음 예시이며 큐 용량·초당 처리율과는 별개다.</text>
+</g></svg>

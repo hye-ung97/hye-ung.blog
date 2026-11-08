@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500" role="img" aria-labelledby="title desc">
+<title id="title">여러 제한 장치가 같은 Redis를 사용한다</title><desc id="desc">클라이언트 1은 제한 장치 1을, 클라이언트 2는 제한 장치 2를 거쳐 동일 Redis의 상태를 공유한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="498" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">여러 제한 장치가 같은 Redis를 사용한다</text>
+<rect x="40" y="140" width="210" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="145.0" y="188.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 1</text>
+<rect x="385" y="140" width="240" height="80" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="505.0" y="188.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">제한 장치 1</text>
+<path d="M250 180 H385" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="40" y="350" width="210" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="145.0" y="398.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 2</text>
+<rect x="385" y="350" width="240" height="80" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="505.0" y="398.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">제한 장치 2</text>
+<path d="M250 390 H385" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="760" y="245" width="200" height="100" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="860.0" y="295.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">Redis</text>
+<text x="860.0" y="323.0" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">공유 사용량 상태</text>
+<path d="M625 180 H685 V275 H760" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<path d="M625 390 H685 V315 H760" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<text x="500" y="473" font-size="21" font-weight="500" fill="#61718a" text-anchor="middle">어느 제한 장치가 요청을 받더라도 공통 상태를 기준으로 판단한다.</text>
+</g></svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="590" viewBox="0 0 1000 590" role="img" aria-labelledby="title desc">
+<title id="title">직전 1분과 현재 1분을 함께 계산한다</title><desc id="desc">직전 1분에 5개, 현재 1분에 3개 요청이 있다. 현재 구간의 30퍼센트가 지났으므로 직전 구간의 70퍼센트를 반영해 6.5개로 추정한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="588" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">직전 1분과 현재 1분을 함께 계산한다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">한도: 분당 7회 · 직전 1분 5개 · 현재 1분 3개</text>
+<rect x="140" y="150" width="360" height="270" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<rect x="500" y="150" width="360" height="270" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<rect x="248" y="215" width="360" height="203" rx="0" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="320" y="183" font-size="22" font-weight="650" fill="#22324a" text-anchor="middle">직전 1분</text>
+<text x="680" y="183" font-size="22" font-weight="650" fill="#22324a" text-anchor="middle">현재 1분</text>
+<path d="M248 199 H500" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)" marker-start="url(#blue)"/>
+<text x="374" y="238" font-size="22" font-weight="700" fill="#315eb8" text-anchor="middle">70%</text>
+<path d="M500 199 H608" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)" marker-start="url(#blue)"/>
+<text x="554" y="238" font-size="22" font-weight="700" fill="#315eb8" text-anchor="middle">30%</text>
+<rect x="183" y="378" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="313" y="378" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="313" y="340" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="413" y="378" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="413" y="340" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="533" y="378" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="533" y="340" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="533" y="302" width="34" height="27" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<path d="M100 115 V435 H925" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="47" y="310" transform="rotate(-90 47 310)" text-anchor="middle" font-size="20" fill="#61718a">요청 수</text>
+<path d="M608 124 V435" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<text x="622" y="133" font-size="20" font-weight="600" fill="#b53d49" text-anchor="start">현재 시각</text>
+<path d="M248 460 H608" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)" marker-start="url(#blue)"/>
+<text x="428" y="490" font-size="21" font-weight="600" fill="#315eb8" text-anchor="middle">최근 1분</text>
+<text x="500" y="538" font-size="26" font-weight="700" fill="#315eb8" text-anchor="middle">3 + 5 × 70% = 6.5 → 내림하면 6</text>
+<text x="500" y="572" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">다음 요청 1개는 허용 · 직후 추가 요청은 거절</text>
+</g></svg>

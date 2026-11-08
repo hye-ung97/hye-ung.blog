@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="570" viewBox="0 0 1000 570" role="img" aria-labelledby="title desc">
+<title id="title">같은 3을 읽고 각각 4를 저장하는 경쟁 조건</title><desc id="desc">초기 카운터는 3이다. 요청 A와 B가 모두 3을 읽고 각각 4를 저장하면 최종 값은 4다. 두 요청이 반영된 값은 5여야 한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="568" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">같은 3을 읽고 각각 4를 저장하는 경쟁 조건</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">초기 카운터: 3 · 두 요청은 서로의 변경을 읽지 못한 채 갱신</text>
+<text x="250" y="140" font-size="23" font-weight="700" fill="#315eb8" text-anchor="middle">요청 A</text>
+<text x="710" y="140" font-size="23" font-weight="700" fill="#315eb8" text-anchor="middle">요청 B</text>
+<path d="M250 163 V443" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M710 163 V443" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="105" y="190" width="290" height="68" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="250.0" y="232.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">1.  카운터 3 읽기</text>
+<rect x="565" y="260" width="290" height="68" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="710.0" y="302.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">2.  카운터 3 읽기</text>
+<rect x="105" y="345" width="290" height="68" rx="12" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="250.0" y="387.0" font-size="23" font-weight="650" fill="#b53d49" text-anchor="middle">3.  카운터 4 저장</text>
+<rect x="565" y="415" width="290" height="68" rx="12" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="710.0" y="457.0" font-size="23" font-weight="650" fill="#b53d49" text-anchor="middle">4.  카운터 4 저장</text>
+<text x="500" y="535" font-size="25" font-weight="700" fill="#b53d49" text-anchor="middle">실제 최종 값 4 · 두 요청이 모두 반영되면 5</text>
+</g></svg>

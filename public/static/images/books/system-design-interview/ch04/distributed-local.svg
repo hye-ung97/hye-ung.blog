@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" role="img" aria-labelledby="title desc">
+<title id="title">다음 요청이 다른 제한 장치로 갈 수 있다</title><desc id="desc">처음에는 클라이언트 1과 2가 각각 제한 장치 1과 2로 요청한다. 다음에는 연결이 서로 바뀔 수 있어 로컬 상태만으로 전체 사용량을 알기 어렵다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="698" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">다음 요청이 다른 제한 장치로 갈 수 있다</text>
+<text x="40" y="104" font-size="23" font-weight="650" fill="#315eb8" text-anchor="start">처음 요청</text>
+<rect x="70" y="145" width="230" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="185.0" y="190.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 1</text>
+<rect x="650" y="145" width="280" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="790.0" y="190.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">제한 장치 1</text>
+<path d="M300 182 H650" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<rect x="70" y="255" width="230" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="185.0" y="300.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 2</text>
+<rect x="650" y="255" width="280" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="790.0" y="300.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">제한 장치 2</text>
+<path d="M300 292 H650" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<path d="M36 370 H964" fill="none" stroke="#d8e1ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="40" y="418" font-size="23" font-weight="650" fill="#315eb8" text-anchor="start">다음 요청에서 연결이 바뀌면</text>
+<rect x="70" y="455" width="230" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="185.0" y="500.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 1</text>
+<rect x="650" y="455" width="280" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="790.0" y="500.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">제한 장치 1</text>
+<rect x="70" y="565" width="230" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="185.0" y="610.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트 2</text>
+<rect x="650" y="565" width="280" height="74" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="790.0" y="610.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">제한 장치 2</text>
+<path d="M300 492 H385 L565 602 H650" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<path d="M300 602 H385 L565 492 H650" fill="none" stroke="#986a14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="500" y="677" font-size="21" font-weight="500" fill="#61718a" text-anchor="middle">각 장치의 로컬 상태만으로는 다른 장치의 사용량을 알 수 없다.</text>
+</g></svg>

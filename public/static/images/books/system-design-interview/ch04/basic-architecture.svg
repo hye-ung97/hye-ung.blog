@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+<title id="title">요청 앞단에서 Redis의 사용량을 확인한다</title><desc id="desc">클라이언트의 요청을 제한 미들웨어가 받아 Redis의 상태를 조회하고 갱신한다. 허용된 요청은 API 서버로 전달한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="428" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">요청 앞단에서 Redis의 사용량을 확인한다</text>
+<rect x="40" y="145" width="210" height="88" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="145.0" y="197.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트</text>
+<rect x="385" y="145" width="240" height="88" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="505.0" y="197.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">제한 미들웨어</text>
+<rect x="760" y="145" width="200" height="88" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="860.0" y="197.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">API 서버</text>
+<path d="M250 189 H385" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M625 189 H760" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+<text x="692" y="166" font-size="21" font-weight="600" fill="#24775c" text-anchor="middle">허용</text>
+<rect x="740" y="315" width="220" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="850.0" y="355.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">Redis</text>
+<text x="850.0" y="383.0" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">요청 수 · 요청 시각</text>
+<path d="M505 233 V355 H740" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)" marker-start="url(#blue)"/>
+<text x="588" y="333" font-size="21" font-weight="500" fill="#315eb8" text-anchor="start">상태 조회·갱신</text>
+</g></svg>

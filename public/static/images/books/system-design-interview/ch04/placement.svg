@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="470" viewBox="0 0 1000 470" role="img" aria-labelledby="title desc">
+<title id="title">제한 장치를 배치하는 두 가지 위치</title><desc id="desc">API 서버 안에 제한 로직을 두는 방법과 별도 미들웨어로 요청을 검사하는 방법을 비교한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="468" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">제한 장치를 배치하는 두 가지 위치</text>
+<text x="40" y="104" font-size="22" font-weight="650" fill="#315eb8" text-anchor="start">API 서버 내부에서 검사</text>
+<rect x="55" y="140" width="210" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="160.0" y="188.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트</text>
+<rect x="570" y="115" width="375" height="135" rx="14" fill="#fff" stroke="#d8e1ee" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="594" y="147" font-size="22" font-weight="650" fill="#22324a" text-anchor="start">API 서버</text>
+<rect x="700" y="166" width="220" height="60" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="810.0" y="204.0" font-size="21" font-weight="650" fill="#315eb8" text-anchor="middle">처리율 제한 로직</text>
+<path d="M265 180 H570" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="415" y="162" font-size="21" font-weight="500" fill="#61718a" text-anchor="middle">HTTP 요청</text>
+<path d="M36 284 H964" fill="none" stroke="#d8e1ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="40" y="327" font-size="22" font-weight="650" fill="#315eb8" text-anchor="start">별도 미들웨어에서 검사</text>
+<rect x="55" y="360" width="210" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="160.0" y="408.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">클라이언트</text>
+<rect x="395" y="360" width="250" height="80" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="520.0" y="408.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">제한 미들웨어</text>
+<rect x="775" y="360" width="170" height="80" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="860.0" y="408.0" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">API 서버</text>
+<path d="M265 400 H395" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M645 400 H775" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</g></svg>

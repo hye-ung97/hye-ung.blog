@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="580" viewBox="0 0 1000 580" role="img" aria-labelledby="title desc">
+<title id="title">고정 윈도는 매초 최대 3개를 허용한다</title><desc id="desc">초마다 총 3, 6, 4, 2, 5개의 요청이 도착한다. 허용 수는 3, 3, 3, 2, 3개이고 나머지는 차단한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="578" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">고정 윈도는 매초 최대 3개를 허용한다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">한도: 초당 3회 · 구간이 바뀌면 카운터를 새로 시작</text>
+<rect x="620" y="110" width="24" height="20" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="655" y="127" font-size="20" font-weight="500" fill="#315eb8" text-anchor="start">허용</text>
+<rect x="770" y="110" width="24" height="20" rx="4" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="805" y="127" font-size="20" font-weight="500" fill="#b53d49" text-anchor="start">차단</text>
+<path d="M90 155 V425 H950" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="45" y="295" transform="rotate(-90 45 295)" text-anchor="middle" font-size="20" fill="#61718a">요청 수</text>
+<rect x="157" y="390" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="157" y="351" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="157" y="312" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="180" y="464" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">1:00:00</text>
+<text x="180" y="503" font-size="19" font-weight="500" fill="#61718a" text-anchor="middle">허용 3 · 차단 0</text>
+<rect x="322" y="390" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="322" y="351" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="322" y="312" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="322" y="273" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<rect x="322" y="234" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<rect x="322" y="195" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="345" y="464" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">1:00:01</text>
+<text x="345" y="503" font-size="19" font-weight="500" fill="#61718a" text-anchor="middle">허용 3 · 차단 3</text>
+<rect x="487" y="390" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="487" y="351" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="487" y="312" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="487" y="273" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="510" y="464" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">1:00:02</text>
+<text x="510" y="503" font-size="19" font-weight="500" fill="#61718a" text-anchor="middle">허용 3 · 차단 1</text>
+<rect x="652" y="390" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="652" y="351" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="675" y="464" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">1:00:03</text>
+<text x="675" y="503" font-size="19" font-weight="500" fill="#61718a" text-anchor="middle">허용 2 · 차단 0</text>
+<rect x="817" y="390" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="817" y="351" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="817" y="312" width="46" height="28" rx="5" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="817" y="273" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<rect x="817" y="234" width="46" height="28" rx="5" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="840" y="464" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">1:00:04</text>
+<text x="840" y="503" font-size="19" font-weight="500" fill="#61718a" text-anchor="middle">허용 3 · 차단 2</text>
+<text x="500" y="553" font-size="22" font-weight="600" fill="#22324a" text-anchor="middle">각 초의 한도를 넘는 요청은 다음 윈도까지 거절한다.</text>
+</g></svg>

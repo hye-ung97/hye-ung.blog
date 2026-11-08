@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="920" viewBox="0 0 1000 920" role="img" aria-labelledby="title desc">
+<title id="title">이동 윈도 로그의 네 단계</title><desc id="desc">분당 2개 한도에서 1:00:01과 1:00:30 요청을 허용하고 1:00:50은 거절하되 기록한다. 1:01:40에는 오래된 두 기록을 지우고 새 요청을 허용한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="918" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">이동 윈도 로그의 네 단계</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">한도: 최근 1분에 2회 · 거절된 요청의 시각도 로그에 남긴다</text>
+<rect x="40" y="120" width="440" height="335" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="62" y="162" font-size="24" font-weight="700" fill="#315eb8" text-anchor="start">01  1:00:01</text>
+<text x="445" y="162" font-size="23" font-weight="700" fill="#24775c" text-anchor="end">허용</text>
+<text x="82" y="223" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:00:01</text>
+<text x="260" y="422" font-size="21" font-weight="650" fill="#24775c" text-anchor="middle">기록 1개</text>
+<rect x="520" y="120" width="440" height="335" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="542" y="162" font-size="24" font-weight="700" fill="#315eb8" text-anchor="start">02  1:00:30</text>
+<text x="925" y="162" font-size="23" font-weight="700" fill="#24775c" text-anchor="end">허용</text>
+<text x="562" y="223" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:00:01</text>
+<text x="562" y="263" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:00:30</text>
+<text x="740" y="422" font-size="21" font-weight="650" fill="#24775c" text-anchor="middle">기록 2개</text>
+<rect x="40" y="495" width="440" height="335" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="62" y="537" font-size="24" font-weight="700" fill="#315eb8" text-anchor="start">03  1:00:50</text>
+<text x="445" y="537" font-size="23" font-weight="700" fill="#b53d49" text-anchor="end">거절</text>
+<text x="82" y="598" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:00:01</text>
+<text x="82" y="638" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:00:30</text>
+<text x="82" y="678" font-size="23" font-weight="600" fill="#b53d49" text-anchor="start">1:00:50</text>
+<text x="222" y="678" font-size="20" font-weight="500" fill="#b53d49" text-anchor="start">거절 기록 유지</text>
+<text x="260" y="797" font-size="21" font-weight="650" fill="#b53d49" text-anchor="middle">기록 3개 · 새 기록은 유지</text>
+<rect x="520" y="495" width="440" height="335" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="542" y="537" font-size="24" font-weight="700" fill="#315eb8" text-anchor="start">04  1:01:40</text>
+<text x="925" y="537" font-size="23" font-weight="700" fill="#24775c" text-anchor="end">허용</text>
+<text x="562" y="598" font-size="23" font-weight="600" fill="#61718a" text-anchor="start">1:00:01</text>
+<path d="M554 590 H673" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="702" y="598" font-size="20" font-weight="500" fill="#61718a" text-anchor="start">만료</text>
+<text x="562" y="638" font-size="23" font-weight="600" fill="#61718a" text-anchor="start">1:00:30</text>
+<path d="M554 630 H673" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="702" y="638" font-size="20" font-weight="500" fill="#61718a" text-anchor="start">만료</text>
+<text x="562" y="678" font-size="23" font-weight="600" fill="#986a14" text-anchor="start">1:00:50</text>
+<text x="702" y="678" font-size="20" font-weight="500" fill="#986a14" text-anchor="start">거절 기록 유지</text>
+<text x="562" y="718" font-size="23" font-weight="600" fill="#315eb8" text-anchor="start">1:01:40</text>
+<text x="740" y="797" font-size="21" font-weight="650" fill="#24775c" text-anchor="middle">만료된 두 기록 삭제 · 2개 남음</text>
+<text x="500" y="895" font-size="22" font-weight="500" fill="#61718a" text-anchor="middle">1:01:40에는 1:00:40보다 오래된 기록이 만료된다.</text>
+</g></svg>

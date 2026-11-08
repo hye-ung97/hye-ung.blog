@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="890" viewBox="0 0 1000 890" role="img" aria-labelledby="title desc">
+<title id="title">토큰을 채우고, 요청마다 하나씩 소비한다</title><desc id="desc">용량 4인 버킷에 초당 2개를 공급하고 넘치는 토큰은 버린다. 아래 요청 묶음 예에서는 사용 가능한 토큰 3개로 입력 요청 5개를 검사해 3개를 전달하고 2개를 버린다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="888" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">토큰을 채우고, 요청마다 하나씩 소비한다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">기본 예: 버킷 용량 4 · 토큰 공급률 초당 2개</text>
+<rect x="380" y="110" width="290" height="90" rx="12" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="525.0" y="155.0" font-size="23" font-weight="650" fill="#315eb8" text-anchor="middle">토큰 공급기</text>
+<text x="525.0" y="183.0" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">초당 2개 보충</text>
+<path d="M380 155 H200 V204" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)"/>
+<rect x="112" y="204" width="176" height="172" rx="24" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="200" cy="226" r="13" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="200" cy="267" r="13" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="200" cy="308" r="13" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="200" cy="349" r="13" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="200" y="408" font-size="21" font-weight="650" fill="#315eb8" text-anchor="middle">최대 4개</text>
+<path d="M288 244 H520 V291" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#red)"/>
+<text x="520" y="224" font-size="21" font-weight="500" fill="#61718a" text-anchor="middle">버킷이 가득 차면</text>
+<rect x="385" y="291" width="300" height="70" rx="12" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="535.0" y="334.0" font-size="23" font-weight="650" fill="#b53d49" text-anchor="middle">추가 토큰 버림</text>
+<path d="M36 442 H964" fill="none" stroke="#d8e1ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="40" y="481" font-size="20" font-weight="500" fill="#61718a" text-anchor="start">요청 묶음 예: 토큰 3개로 요청 5개 검사 · 처리 중 추가 보충 없음</text>
+<rect x="40" y="520" width="200" height="115" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="140" y="553" font-size="23" font-weight="650" fill="#22324a" text-anchor="middle">입력 요청 5개</text>
+<rect x="65" y="590" width="22" height="22" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="97" y="590" width="22" height="22" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="129" y="590" width="22" height="22" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="161" y="590" width="22" height="22" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="193" y="590" width="22" height="22" rx="4" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<path d="M455 505.0 L580.0 575 L455 645.0 L330.0 575 Z" fill="#edf3ff" stroke="#315eb8" stroke-width="2"/>
+<text x="455" y="583" font-size="22" font-weight="650" fill="#315eb8" text-anchor="middle">토큰이 충분한가?</text>
+<rect x="730" y="520" width="230" height="115" rx="12" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<text x="845" y="553" font-size="23" font-weight="650" fill="#24775c" text-anchor="middle">전달 3개</text>
+<text x="845" y="581" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">요청당 토큰 1개 소비</text>
+<rect x="799" y="598" width="22" height="22" rx="4" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<rect x="834" y="598" width="22" height="22" rx="4" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<rect x="869" y="598" width="22" height="22" rx="4" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<path d="M240 575 H330" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M580 575 H730" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+<text x="655" y="553" font-size="21" font-weight="650" fill="#24775c" text-anchor="middle">예</text>
+<path d="M455 645 V735" fill="none" stroke="#b53d49" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#red)"/>
+<text x="500" y="693" font-size="21" font-weight="650" fill="#b53d49" text-anchor="start">아니오</text>
+<rect x="340" y="735" width="230" height="115" rx="12" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<text x="455" y="779" font-size="23" font-weight="650" fill="#b53d49" text-anchor="middle">버림 2개</text>
+<rect x="423" y="803" width="24" height="24" rx="4" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+<rect x="463" y="803" width="24" height="24" rx="4" fill="#fff1f2" stroke="#b53d49" stroke-width="2"/>
+</g></svg>

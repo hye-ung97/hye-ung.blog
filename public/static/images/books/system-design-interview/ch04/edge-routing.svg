@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="710" viewBox="0 0 1000 710" role="img" aria-labelledby="title desc">
+<title id="title">사용자와 가까운 에지 서버로 트래픽을 보낸다</title><desc id="desc">분산된 에지 서버 중 사용자와 가까운 서버로 요청을 전달한다. 사용자 한 곳과 에지 서버 열두 곳을 표시하고, 가까운 서버로 향하는 경로를 강조한다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="708" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">사용자와 가까운 에지 서버로 트래픽을 보낸다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">지리적으로 분산된 에지 중 가까운 지점을 선택해 통신 지연을 줄인다</text>
+<g transform="translate(55 130) scale(1.15)">
+<path d="M60 40 L160 25 L155 67 L137 91 L145 111 L121 140 L64 159 L25 140 L44 117 L45 79 Z" fill="#edf3ff" stroke="#d8e1ee" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M220 25 L300 25 L320 65 L365 95 L360 135 L330 160 L345 170 L305 190 L250 190 L215 220 L195 205 L175 220 L165 205 L190 190 L195 170 L225 155 L175 145 L180 130 L210 105 L200 85 L235 75 Z" fill="#edf3ff" stroke="#d8e1ee" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M280 420 L290 372 L263 347 L253 318 L217 305 L183 299 L188 280 L224 268 L240 281 L278 277 L266 235 L282 235 L290 247 L315 250 L325 234 L371 214 L375 193 L408 177 L435 161 L420 159 L438 137 L454 122 L474 84 L520 72 L553 64 L570 25 L596 25 L635 52 L667 32 L667 420 Z" fill="#edf3ff" stroke="#d8e1ee" stroke-width="1.5" stroke-linejoin="round"/>
+<circle cx="142" cy="73" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="255" cy="77" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="306" cy="158" r="10" fill="#ecf8f2" stroke="#24775c" stroke-width="2"/>
+<circle cx="600" cy="64" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="454" cy="122" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="511" cy="166" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="448" cy="183" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="564" cy="217" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="393" cy="261" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="654" cy="294" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="568" cy="321" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="573" cy="394" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<circle cx="245" cy="181" r="6" fill="#22324a" stroke="#22324a" stroke-width="2"/>
+<path d="M253 178 L293 162" fill="none" stroke="#24775c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#green)"/>
+</g>
+<text x="286" y="388" font-size="22" font-weight="650" fill="#22324a" text-anchor="middle">사용자</text>
+<text x="476" y="313" font-size="22" font-weight="650" fill="#24775c" text-anchor="start">가까운 에지</text>
+<circle cx="110" cy="662" r="10" fill="#fff" stroke="#315eb8" stroke-width="2"/>
+<text x="133" y="670" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">에지 서버</text>
+<text x="580" y="670" font-size="21" font-weight="600" fill="#24775c" text-anchor="middle">강조한 경로: 사용자 → 가까운 에지</text>
+</g></svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+<title id="title">고정 윈도의 경계에서는 1분에 10개가 모일 수 있다</title><desc id="desc">각 고정 1분 구간에 5개씩 요청을 허용한다. 2:00:30부터 2:01:30까지의 1분에는 10개 요청이 모두 포함된다.</desc>
+<defs>
+<marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#61718a"/></marker>
+<marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#315eb8"/></marker>
+<marker id="red" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#b53d49"/></marker>
+<marker id="green" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 Z" fill="#24775c"/></marker>
+</defs>
+<rect x="1" y="1" width="998" height="558" rx="20" fill="#f7f9fc" stroke="#d8e1ee"/>
+<g font-family="Apple SD Gothic Neo,Noto Sans KR,Malgun Gothic,sans-serif">
+<text x="36" y="49" font-size="27" font-weight="700" fill="#22324a" text-anchor="start">고정 윈도의 경계에서는 1분에 10개가 모일 수 있다</text>
+<text x="36" y="84" font-size="21" font-weight="500" fill="#61718a" text-anchor="start">한도: 분당 5회 · 요청 묶음은 시간순으로 3개, 2개, 1개, 4개</text>
+<rect x="100" y="130" width="400" height="280" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<rect x="500" y="130" width="400" height="280" rx="12" fill="#fff" stroke="#d8e1ee" stroke-width="2"/>
+<text x="300" y="165" font-size="22" font-weight="650" fill="#22324a" text-anchor="middle">고정 구간 1: 5개</text>
+<text x="700" y="165" font-size="22" font-weight="650" fill="#22324a" text-anchor="middle">고정 구간 2: 5개</text>
+<rect x="300" y="187" width="400" height="201" rx="8" fill="#edf3ff" stroke="#315eb8" stroke-width="2" stroke-dasharray="7 6"/>
+<path d="M500 182 V421" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 6"/>
+<rect x="343" y="350" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="343" y="315" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="343" y="280" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="433" y="350" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="433" y="315" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="543" y="350" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="633" y="350" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="633" y="315" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="633" y="280" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<rect x="633" y="245" width="34" height="26" rx="4" fill="#dbe7ff" stroke="#315eb8" stroke-width="2"/>
+<path d="M75 410 H935" fill="none" stroke="#61718a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="100" y="446" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">2:00:00</text>
+<text x="500" y="446" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">2:01:00</text>
+<text x="900" y="446" font-size="21" font-weight="600" fill="#22324a" text-anchor="middle">2:02:00</text>
+<path d="M300 475 H700" fill="none" stroke="#315eb8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#blue)" marker-start="url(#blue)"/>
+<text x="300" y="506" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">2:00:30</text>
+<text x="700" y="506" font-size="20" font-weight="500" fill="#61718a" text-anchor="middle">2:01:30</text>
+<text x="500" y="541" font-size="23" font-weight="700" fill="#b53d49" text-anchor="middle">이동한 1분 안에 10개 · 허용 한도의 2배</text>
+</g></svg>
