@@ -1,0 +1,172 @@
+---
+title: 'DB로 분산 잠금 구현하기'
+chapter: 14
+date: '2026-11-16'
+summary: '여러 서버에서 같은 작업이 겹치지 않도록, MySQL 행 잠금과 만료 시간이 있는 소유권으로 분산 잠금을 구현한다.'
+images: ['/static/images/books/junior-backend-practical-knowledge/cover.jpg']
+draft: false
+---
+
+1분마다 실행하는 작업을 서버 두 대에 배포하면 두 서버가 같은 시각에 작업을 시작할 수 있다. JVM 안에서 잡은 잠금은 다른 서버의 실행에 영향을 주지 않는다. 두 서버가 같은 DB를 쓰고 있다면, 그 DB에 작업의 소유자를 기록해 누가 실행할지 정할 수 있다.
+
+## 잠금 하나를 테이블의 한 행으로 관리한다
+
+`dist_lock`에는 잠금 이름(`name`), 소유자(`owner`), 만료 시각(`expiry`)을 저장한다. 모든 서버는 같은 작업에 같은 `name`을 사용한다. `name`이 기본 키라서 이름 하나에 행 하나만 생긴다. 작업 중에 서버가 내려가도, `expiry`가 지나면 다른 서버가 그 잠금을 얻을 수 있다.
+
+![dist_lock 테이블에 기본 키인 name과, 잠금을 해제하면 비워지는 owner와 expiry를 저장한다.](/static/images/books/junior-backend-practical-knowledge/appendix-c/dist-lock-table.svg)
+
+```sql
+CREATE TABLE dist_lock (
+    name VARCHAR(100) NOT NULL,
+    owner VARCHAR(100),
+    expiry DATETIME(6),
+    PRIMARY KEY (name)
+) ENGINE = InnoDB;
+```
+
+## `FOR UPDATE`로 소유자를 정한다
+
+트랜잭션을 열고 `SELECT owner, expiry FROM dist_lock WHERE name = ? FOR UPDATE`를 실행한다. 행이 있으면 잠근 채로 읽기 때문에, 소유자를 확인하고 바꾸는 동안 다른 트랜잭션이 그 행을 갱신할 수 없다. [MySQL InnoDB 잠금 읽기](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html)
+
+| 조회 결과                           | 처리                                      |
+| ----------------------------------- | ----------------------------------------- |
+| 행이 없다.                          | `INSERT`로 소유자와 만료 시각을 기록한다. |
+| 행은 있고 `owner`가 비어 있다.      | `UPDATE`로 기존 행에 소유자를 기록한다.   |
+| 같은 소유자다.                      | 만료 시각을 다시 계산해 갱신한다.         |
+| 다른 소유자의 잠금이 만료됐다.      | 소유자와 만료 시각을 바꾼다.              |
+| 다른 소유자의 잠금이 아직 유효하다. | 작업을 건너뛴다.                          |
+
+처음 보는 이름으로 두 서버가 동시에 잠금을 얻으려 하면 둘 다 행이 없다고 판단할 수 있다. 그래도 기본 키가 두 행의 삽입을 허용하지 않는다. 경쟁 중 중복 키나 교착으로 트랜잭션에 실패한 서버는 작업을 시작하지 않는다.
+
+**실제 작업은 잠금 획득을 커밋한 뒤에 시작한다.** 이때 InnoDB의 행 잠금은 풀린다. 다음 서버는 테이블에 남은 `owner`와 `expiry`를 보고 실행할 수 있는지 판단한다.
+
+## JDBC로 획득과 해제 구현하기
+
+`unlock()`에서도 같은 행을 잠근 뒤 읽는다. 호출자가 아직 유효한 잠금을 가지고 있을 때 `owner`와 `expiry`를 `NULL`로 바꾼다. 행을 남겨 두므로 다음 `tryLock()`은 그 행을 갱신한다. 아래 예제에서 `false`는 다른 소유자가 잠금을 가지고 있을 때 반환한다. SQL 예외는 호출자에게 전달한다. 커밋에 실패하면 작업은 시작하지 않는다.
+
+```java
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import javax.sql.DataSource;
+
+public final class DistLock {
+    private final DataSource dataSource;
+
+    public DistLock(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    public boolean tryLock(String name, String owner, Duration duration) throws SQLException {
+        if (owner == null || owner.isBlank() || duration.isZero() || duration.isNegative()) {
+            throw new IllegalArgumentException("잠금 소유자와 양수인 유효 시간이 필요하다.");
+        }
+        return inTransaction(conn -> {
+            LockOwner current = readForUpdate(conn, name);
+            LocalDateTime now = LocalDateTime.now();
+            if (current != null && current.owner() != null
+                    && !owner.equals(current.owner()) && !current.isExpired(now)) {
+                return false;
+            }
+
+            String sql = current == null
+                ? "INSERT INTO dist_lock (owner, expiry, name) VALUES (?, ?, ?)"
+                : "UPDATE dist_lock SET owner = ?, expiry = ? WHERE name = ?";
+            try (var stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, owner);
+                stmt.setObject(2, now.plus(duration));
+                stmt.setString(3, name);
+                stmt.executeUpdate();
+            }
+            return true;
+        });
+    }
+
+    public void unlock(String name, String owner) throws SQLException {
+        inTransaction(conn -> {
+            LockOwner current = readForUpdate(conn, name);
+            if (current == null || owner == null || !owner.equals(current.owner())
+                    || current.isExpired(LocalDateTime.now())) {
+                throw new IllegalStateException("유효한 잠금의 소유자만 해제할 수 있다.");
+            }
+
+            String sql = "UPDATE dist_lock SET owner = NULL, expiry = NULL WHERE name = ?";
+            try (var stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, name);
+                stmt.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    private LockOwner readForUpdate(Connection conn, String name) throws SQLException {
+        String sql = "SELECT owner, expiry FROM dist_lock WHERE name = ? FOR UPDATE";
+        try (var stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, name);
+            try (var rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new LockOwner(rs.getString(1), rs.getObject(2, LocalDateTime.class));
+                }
+                return null;
+            }
+        }
+    }
+
+    private <T> T inTransaction(Transaction<T> action) throws SQLException {
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                T result = action.execute(conn);
+                conn.commit();
+                return result;
+            } catch (SQLException | RuntimeException failure) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackFailure) {
+                    failure.addSuppressed(rollbackFailure);
+                }
+                throw failure;
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface Transaction<T> {
+        T execute(Connection conn) throws SQLException;
+    }
+
+    private record LockOwner(String owner, LocalDateTime expiry) {
+        boolean isExpired(LocalDateTime now) {
+            return expiry == null || !expiry.isAfter(now);
+        }
+    }
+}
+```
+
+호출할 때는 실행마다 다른 소유자 ID를 만들고, 작업을 시작할 때 사용한 값으로 해제한다. 같은 `owner`를 여러 스레드가 공유하면 두 번째 스레드도 기존 소유자로 인정되므로 주의한다.
+
+```java
+DistLock lock = new DistLock(dataSource);
+String name = "minute-job";
+String owner = java.util.UUID.randomUUID().toString();
+if (lock.tryLock(name, owner, Duration.ofMinutes(1))) {
+    try {
+        runJob();
+    } finally {
+        lock.unlock(name, owner);
+    }
+}
+```
+
+## 보충
+
+### 작업이 만료 시간보다 길어질 때
+
+서버 A가 1분짜리 잠금을 얻고 1분 넘게 작업하면, 서버 B가 만료된 잠금을 가져간 뒤에도 A는 실행 중일 수 있다. 유효 시간은 작업에 걸리는 시간을 기준으로 정한다. 만료가 가까워질 때 갱신할 수도 있다. 잠금을 잃은 A가 뒤늦게 결과를 쓰는 상황까지 막으려면 저장하는 쪽에서 그 쓰기를 거부할 수 있어야 한다. 작업과 잠금 해제가 모두 실패했을 때는 작업 예외가 가려지지 않도록 두 오류를 따로 남긴다.
+
+예제는 각 애플리케이션 서버의 현재 시각으로 만료를 계산한다. 서버의 시계나 시간대가 서로 다르면 같은 잠금이 한쪽에서는 이미 만료된 것으로 보일 수 있다. 만료 시각을 기록할 때와 비교할 때 모두 DB 시각을 쓰면 기준을 통일할 수 있다.
+
+### 실행 시각마다 한 번만 처리해야 할 때
+
+A가 작업을 끝내고 잠금을 풀자마자 같은 회차를 뒤늦게 실행하는 B가 잠금을 얻을 수 있다. 한 회차가 두 번 처리되는 일까지 막으려면 `(작업 이름, 예정 시각)`을 고유 키로 삼아 실행 이력을 저장한다. 재시도가 필요하다면 이미 끝난 작업과 도중에 실패한 작업을 구분한다.

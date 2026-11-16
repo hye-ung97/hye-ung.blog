@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="320" viewBox="0 0 760 320" role="img" aria-labelledby="title description">
+  <title id="title">수직 확장과 수평 확장</title>
+  <desc id="description">수직 확장은 기존 장비 하나의 용량을 늘리고, 수평 확장은 장비 수를 늘린다.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0L10 5L0 10Z" fill="#52657a"/>
+    </marker>
+    <g id="node" fill="#e6f4f4" stroke="#087e80" stroke-width="2.5">
+      <path d="M0 10V53C0 67 48 67 48 53V10Z"/>
+      <ellipse cx="24" cy="10" rx="24" ry="10"/>
+    </g>
+  </defs>
+  <rect x="1" y="1" width="758" height="318" rx="18" fill="#fff" stroke="#dbe4ef" stroke-width="2"/>
+  <path d="M365 40V280" stroke="#dbe4ef" stroke-width="2"/>
+  <g font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif" text-anchor="middle">
+    <g font-size="32" font-weight="700" fill="#172b45">
+      <text x="183" y="62">수직 확장</text>
+      <text x="558" y="62">수평 확장</text>
+    </g>
+    <g font-size="25" fill="#52657a">
+      <text x="183" y="266">한 대의 용량을 늘린다</text>
+      <text x="558" y="266">장비를 여러 대로 늘린다</text>
+    </g>
+  </g>
+  <g fill="#eaf1fb" stroke="#426a9e" stroke-width="3">
+    <path d="M70 143V186C70 200 118 200 118 186V143Z"/>
+    <ellipse cx="94" cy="143" rx="24" ry="10"/>
+    <path d="M204 115V191C204 215 303 215 303 191V115Z"/>
+    <ellipse cx="253.5" cy="115" rx="49.5" ry="15"/>
+  </g>
+  <g fill="none" stroke="#52657a" stroke-width="2.5" marker-end="url(#arrow)">
+    <path d="M138 163H184"/>
+    <path d="M484 163H530"/>
+  </g>
+  <use href="#node" x="415" y="133"/>
+  <use href="#node" x="551" y="133"/>
+  <use href="#node" x="610" y="133"/>
+  <use href="#node" x="669" y="133"/>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="382" viewBox="0 0 760 382" role="img" aria-labelledby="title description">
+  <title id="title">CAP 정리</title>
+  <desc id="description">C는 일관성, A는 가용성, P는 분할 내성이다. 분할이 없다는 전제의 CA와 분할 상황에서 일관성을 우선하는 CP, 가용성을 우선하는 AP를 표시했다.</desc>
+  <rect x="1" y="1" width="758" height="380" rx="18" fill="#fff" stroke="#dbe4ef" stroke-width="2"/>
+  <g stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M380 95L157 271" stroke="#76899f" stroke-dasharray="7 8"/>
+    <path d="M380 95L603 271" stroke="#426a9e"/>
+    <path d="M157 271H603" stroke="#087e80"/>
+  </g>
+  <g stroke="#fff" stroke-width="3">
+    <circle cx="380" cy="95" r="10" fill="#426a9e"/>
+    <circle cx="157" cy="271" r="10" fill="#087e80"/>
+    <circle cx="603" cy="271" r="10" fill="#087e80"/>
+  </g>
+  <g font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif" text-anchor="middle">
+    <g fill="#172b45" font-size="32" font-weight="700">
+      <text x="380" y="69">C 일관성</text>
+      <text x="157" y="326">A 가용성</text>
+      <text x="603" y="326">P 분할 내성</text>
+    </g>
+    <g font-size="27" font-weight="700">
+      <text x="173" y="171" fill="#52657a">CA</text>
+      <text x="587" y="171" fill="#426a9e">CP</text>
+      <text x="380" y="239" fill="#087e80">AP</text>
+    </g>
+    <g font-size="24" fill="#52657a">
+      <text x="173" y="204">분할이 없을 때</text>
+      <text x="587" y="204">일관성을 우선</text>
+      <text x="380" y="326">가용성을 우선</text>
+    </g>
+  </g>
+</svg>

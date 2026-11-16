@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="328" viewBox="0 0 760 328" role="img" aria-labelledby="title description">
+  <title id="title">dist_lock 테이블 구조</title>
+  <desc id="description">name은 기본 키, owner는 잠금 소유자, expiry는 잠금 만료 시각이다.</desc>
+  <rect x="1" y="1" width="758" height="326" rx="18" fill="#fff" stroke="#dbe4ef" stroke-width="2"/>
+  <rect x="77" y="39" width="606" height="250" rx="14" fill="#f7fafc" stroke="#dbe4ef" stroke-width="2"/>
+  <path d="M91 39H669Q683 39 683 53V105H77V53Q77 39 91 39Z" fill="#e6f4f4"/>
+  <path d="M77 105H683M77 167H683M77 228H683" stroke="#dbe4ef" stroke-width="2"/>
+  <g font-family="ui-monospace,'SF Mono',Menlo,monospace" fill="#172b45">
+    <text x="111" y="82" font-size="31" font-weight="700">dist_lock</text>
+    <g font-size="29">
+      <text x="111" y="147" font-weight="700">name</text>
+      <text x="111" y="207">owner</text>
+      <text x="111" y="268">expiry</text>
+    </g>
+  </g>
+  <g font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif" font-size="29" fill="#52657a">
+    <text x="328" y="147" fill="#087e80" font-weight="700">잠금 이름 · 기본 키</text>
+    <text x="328" y="207">잠금 소유자</text>
+    <text x="328" y="268">잠금 만료 시각</text>
+  </g>
+</svg>
